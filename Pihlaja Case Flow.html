@@ -1,0 +1,325 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Pihlaja Case Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a swimlane board (people × stages) with a player that walks the case event by event; narration below. */
+:root {
+  --bg: #F5F5F3; --surface: #FFFFFF; --ink: #1B1D22; --ink-2: #5B616E; --line: #DEE1E7;
+  --accent: #2E4AC4; --accent-soft: #E8ECFB; --ai: #6B4FBB; --ai-soft: #EFEAFB;
+  --ok: #1F7A4D; --ok-soft: #E3F3EA; --crit: #B42318; --crit-soft: #FBE7E5; --dim: 0.42; --on-accent: #FFFFFF;
+  --font-body: "Inter", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --lane-w: 136px; --col-w: 132px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121318; --surface: #1B1D24; --ink: #E9EAEE; --ink-2: #A3A8B4; --line: #2D3039;
+  --accent: #8EA2FF; --accent-soft: #24294A; --ai: #B9A4F5; --ai-soft: #2C2545;
+  --ok: #6FD3A0; --ok-soft: #173327; --crit: #FF8F84; --crit-soft: #3A1E1C; --dim: 0.38; --on-accent: #121318; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121318; --surface: #1B1D24; --ink: #E9EAEE; --ink-2: #A3A8B4; --line: #2D3039;
+  --accent: #8EA2FF; --accent-soft: #24294A; --ai: #B9A4F5; --ai-soft: #2C2545;
+  --ok: #6FD3A0; --ok-soft: #173327; --crit: #FF8F84; --crit-soft: #3A1E1C; --dim: 0.38; --on-accent: #121318; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 18px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font: 500 12px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 0; font-size: clamp(24px, 3.2vw, 34px); line-height: 1.15; font-weight: 700; text-wrap: balance; }
+.lede { margin: 0; color: var(--ink-2); max-width: 70ch; }
+
+/* player */
+.player { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px 14px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.btn { font: 600 14px/1 var(--font-body); border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 8px; min-height: 40px; padding: 0 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { border-color: var(--accent); }
+.btn:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); min-width: 108px; justify-content: center; }
+.btn svg { width: 16px; height: 16px; }
+.count { font: 500 13px/1 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 64px; }
+.scrub { flex: 1 1 220px; min-width: 0; accent-color: var(--accent); }
+.speed { font: 500 13px var(--font-body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; min-height: 40px; padding: 0 8px; }
+label.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* board */
+.board-scroll { overflow-x: auto; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.board { position: relative; display: grid; grid-template-columns: var(--lane-w) repeat(8, minmax(var(--col-w), 1fr)); min-width: calc(var(--lane-w) + 8 * var(--col-w)); }
+.colhead { padding: 10px 10px 8px; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); background: var(--surface); transition: background .25s; }
+.colhead b { display: block; font-size: 13px; }
+.colhead span { font: 400 11.5px/1.3 var(--font-mono); color: var(--ink-2); }
+.colhead.on { background: var(--accent-soft); }
+.corner { border-bottom: 1px solid var(--line); }
+.lane { padding: 10px; border-bottom: 1px solid var(--line); display: grid; align-content: start; gap: 2px; transition: background .25s; }
+.lane b { font-size: 13.5px; }
+.lane span { font-size: 12px; color: var(--ink-2); line-height: 1.3; }
+.lane .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-bottom: 4px; }
+.lane.ai .dot { background: var(--ai); }
+.lane.on { background: var(--accent-soft); }
+.lane.ai.on { background: var(--ai-soft); }
+.cell { border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px 7px; display: flex; flex-direction: column; gap: 6px; min-height: 96px; }
+.row-last { border-bottom: 0; }
+.chip { font: 500 12px/1.3 var(--font-body); text-align: left; border: 1px solid transparent; border-radius: 7px; padding: 6px 7px;
+  background: var(--accent-soft); color: var(--ink); cursor: pointer; transition: opacity .25s, transform .25s, box-shadow .25s; }
+.chip.ai { background: var(--ai-soft); }
+.chip.decision { background: var(--ok-soft); }
+.chip.refused { background: var(--crit-soft); }
+.chip .n { font: 500 10.5px/1 var(--font-mono); color: var(--ink-2); display: block; margin-bottom: 3px; }
+.board.playing .chip:not(.done):not(.active) { opacity: var(--dim); }
+.chip.active { transform: scale(1.04); box-shadow: 0 0 0 2px var(--accent), 0 6px 18px rgba(20, 30, 80, .18); opacity: 1; }
+.chip.ai.active { box-shadow: 0 0 0 2px var(--ai), 0 6px 18px rgba(60, 30, 120, .2); }
+.chip.decision.active { box-shadow: 0 0 0 2px var(--ok), 0 6px 18px rgba(20, 80, 50, .18); }
+.chip.refused.active { box-shadow: 0 0 0 2px var(--crit), 0 6px 18px rgba(120, 20, 20, .18); }
+svg.links { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+svg.links path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+svg.links path.ai { stroke: var(--ai); }
+svg.links circle { fill: var(--accent); }
+svg.links circle.ai { fill: var(--ai); }
+
+/* narration */
+.now { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 820px) { .now { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.panel h2 { margin: 0 0 4px; font-size: 19px; line-height: 1.3; text-wrap: balance; }
+.who { font: 500 12.5px/1.4 var(--font-mono); color: var(--ink-2); margin: 0 0 12px; }
+.io { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .io { grid-template-columns: 1fr; } }
+.io div { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.io h3 { margin: 0 0 4px; font: 600 11px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.io p { margin: 0; font-size: 14px; }
+.rule { margin: 12px 0 0; font-size: 13.5px; padding: 8px 12px; border-radius: 8px; background: var(--accent-soft); }
+.rule:empty { display: none; }
+.tally h2 { font-size: 15px; margin-bottom: 10px; }
+.tally ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tally li { display: grid; grid-template-columns: 112px minmax(0, 1fr) 28px; align-items: center; gap: 10px; font-size: 13px; }
+.bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s; }
+.tally li.ai .bar i { background: var(--ai); }
+.tally li span:last-child { font: 500 12px var(--font-mono); text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12.5px; color: var(--ink-2); }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+.lg-p::before { background: var(--accent-soft); } .lg-ai::before { background: var(--ai-soft); }
+.lg-d::before { background: var(--ok-soft); } .lg-r::before { background: var(--crit-soft); }
+.foot { font-size: 12.5px; color: var(--ink-2); margin: 0; max-width: 90ch; }
+@media (max-width: 640px) { :root { --lane-w: 108px; --col-w: 132px; } }
+@media (prefers-reduced-motion: reduce) { .chip, .bar i, .lane, .colhead { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">STRATMAP LITE · one operation from start to end</div>
+    <h1>Pihlaja Fysio Oy: who did what, and what came out</h1>
+    <p class="lede">The real Pihlaja case, step by step, from creating the operation to a report read against the approved plan. Press play, or pick any event. People decide; the AI drafts, checks and flags.</p>
+  </header>
+
+  <div class="player" role="group" aria-label="Player">
+    <button class="btn" id="prev" type="button" aria-label="Previous event"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button class="btn primary" id="play" type="button">Play</button>
+    <button class="btn" id="next" type="button" aria-label="Next event"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <span class="count" id="count" aria-live="polite">1 / 26</span>
+    <label class="vh" for="scrub">Event</label>
+    <input class="scrub" id="scrub" type="range" min="0" max="25" value="0">
+    <label class="vh" for="speed">Speed</label>
+    <select class="speed" id="speed"><option value="1">1×</option><option value="1.6" selected>1.5×</option><option value="2.5">2.5×</option></select>
+  </div>
+
+  <div class="board-scroll" id="scroller">
+    <div class="board" id="board" aria-label="Swimlane of the case"></div>
+  </div>
+  <div class="legend"><span class="lg-p">a person acts</span><span class="lg-ai">AI or HORIZON works</span><span class="lg-d">decision recorded</span><span class="lg-r">refused by the server</span></div>
+
+  <section class="now">
+    <div class="panel" aria-live="polite">
+      <h2 id="nTitle">Creates the operation</h2>
+      <p class="who" id="nWho"></p>
+      <div class="io">
+        <div><h3>Input</h3><p id="nIn"></p></div>
+        <div><h3>Output</h3><p id="nOut"></p></div>
+      </div>
+      <p class="rule" id="nRule"></p>
+    </div>
+    <div class="panel tally">
+      <h2>Actions so far</h2>
+      <ul id="tally"></ul>
+    </div>
+  </section>
+  <p class="foot">Times are local Finnish time. The company and people are the product owner's TESTI2 test company; the CEO's correction feedback and the board's decisions were written by a separate AI playing those people and are marked "SIMULOITU" in the records. Everything else is the real system: screens, records and AI output. The two months were run on one day with prepared monthly reports.</p>
+</div>
+
+<script>
+const LANES = [
+  { id: 'admin', name: 'Admin (SFAi)', role: 'Facilitator · administrator' },
+  { id: 'laura', name: 'Laura Pihlaja', role: 'CEO · Accountable Executive' },
+  { id: 'mikko', name: 'Mikko Pihlaja', role: 'Finance · Assessment Lead' },
+  { id: 'petri', name: 'Petri Aalto', role: 'Board member · Board' },
+  { id: 'ai', name: 'AI & HORIZON', role: 'Drafts, checks, monitors', ai: true },
+]
+const COLS = [
+  ['Setup', '24.10 18:16'], ['Starting point K0', '24.10 18:16'], ['Plan built', '24.10 18:16–18:29'], ['Board decision', '24.10 18:29'],
+  ['October', '24.10 18:29'], ['November', '24.10 18:30'], ['Web watch', '25.10 22:57'], ['Living plan', '26.10 11:24'],
+]
+// kind: p = person acts, ai = AI/HORIZON, d = decision, r = refused
+const EV = [
+  { l: 'admin', c: 0, k: 'p', t: 'Creates the operation', who: 'Admin · SFAi facilitator', at: '24.10 18:16',
+    i: 'Company name, LITE route, Finnish', o: 'Operation "Pihlaja Fysio Oy – kasvusuunnitelma 2027–2029"' },
+  { l: 'admin', c: 0, k: 'p', t: 'Invites 3 people with roles', who: 'Admin', at: '24.10 18:16',
+    i: 'Email address + role, per person', o: 'Role assignments: CEO, finance lead, board', rule: 'Access comes only from a role in the operation; a login gives no decision rights.' },
+  { l: ['laura', 'mikko', 'petri'], c: 0, k: 'p', t: 'Confirm their roles', who: 'Laura, Mikko, Petri', at: '24.10 18:16',
+    i: 'Each signs in and confirms', o: '3 role confirmations, each by the person', rule: 'A role carries no rights until its holder confirms it.' },
+  { l: 'laura', c: 0, k: 'p', t: 'Uploads the company profile', who: 'Laura · CEO', at: '24.10 18:16',
+    i: 'Yritysprofiili v1.0 (docx)', o: 'Encrypted document, status received' },
+  { l: 'laura', c: 1, k: 'p', t: 'Answers K0 part A (10 questions)', who: 'Laura · CEO', at: '24.10 18:16',
+    i: 'Who decides, goals, money limits, capacity, contracts, options and weights, risk tolerance', o: 'Answered workshop record (revision 2)' },
+  { l: 'mikko', c: 1, k: 'p', t: 'Answers K0 part B (4 questions)', who: 'Mikko · finance lead', at: '24.10 18:16',
+    i: '12-month cash forecast and its basis', o: 'Answered workshop record (revision 2)' },
+  { l: 'ai', c: 2, k: 'ai', t: 'Drafts the plan model r1', who: 'AI analyst · Claude Opus 5.5', at: '24.10 18:21',
+    i: 'K0 answers + company profile', o: 'Plan model r1 and the board package (goals, options, cash, triggers, risks)', rule: 'Every later check is done by a different model, so the drafter never checks its own work.' },
+  { l: 'ai', c: 2, k: 'ai', t: 'Independent fact check', who: 'Verifier · Gemini 2.5 Flash', at: '24.10 18:21',
+    i: 'The plan’s external claim C-02', o: 'Claim confirmed against its source; r2 VERIFIED' },
+  { l: 'ai', c: 2, k: 'ai', t: 'Red team: 10 objections', who: 'Outside board member · Claude Sonnet 4.6', at: '24.10 18:22',
+    i: 'The board package', o: '10 objections (5 high), e.g. "the CFO’s own forecast is below the board’s cash floor"' },
+  { l: 'laura', c: 2, k: 'p', t: 'Correction round', who: 'Laura · CEO (content simulated)', at: '24.10 18:22',
+    i: 'The board package', o: 'Factual errors (cash floor 150 k€, not 170), disagreements, unclear points' },
+  { l: 'ai', c: 2, k: 'ai', t: 'Revises; consistency check ×2', who: 'AI analyst + checker · GPT-5.4', at: '24.10 18:25–18:29',
+    i: 'Red team + CEO feedback', o: '13 then 5 findings answered, 0 open: plan r10 CHECKED', rule: 'The server refuses board approval before the consistency check passes.' },
+  { l: 'laura', c: 3, k: 'r', t: 'Tries to approve alone', who: 'Laura · CEO', at: '24.10 18:29',
+    i: 'Approve plan r10', o: 'Refused (HTTP 403), nothing recorded', rule: 'Approving the plan is the board’s right, not the CEO’s.' },
+  { l: 'petri', c: 3, k: 'd', t: 'Approves plan r10', who: 'Petri · Board (simulated)', at: '24.10 18:29',
+    i: 'Board package of the exact revision r10', o: 'Approval with reasons; HORIZON-LITE starts monitoring', rule: 'A decision names the exact revision it approves.' },
+  { l: 'admin', c: 4, k: 'p', t: 'Records the October report', who: 'Admin (normally the finance lead)', at: '24.10 18:29',
+    i: '7 figures: cash 198 k€, margin 8.1 %, queue 15 days …', o: 'Month 2026-10 recorded' },
+  { l: 'ai', c: 4, k: 'ai', t: 'Monitor + review: T-03 fired', who: 'HORIZON + AI review · Claude Opus 5.5', at: '24.10 18:29',
+    i: 'Figures vs the plan’s trigger rules', o: 'Margin below 8.4 % → 3 decision offers with options, deadline and decider' },
+  { l: ['petri', 'laura'], c: 4, k: 'd', t: 'Decide the 3 offers', who: 'Petri (2 board) · Laura (1 CEO)', at: '24.10 18:29',
+    i: 'Each offer: options, recommendation, criterion', o: 'Decisions with reasons; written into plan r12', rule: 'Each offer names who decides: the CEO or the board.' },
+  { l: 'admin', c: 5, k: 'p', t: 'Records the November report', who: 'Admin', at: '24.10 18:30',
+    i: 'Cash 168 k€ after customer B gave notice', o: 'Month 2026-11 recorded' },
+  { l: 'ai', c: 5, k: 'ai', t: 'T-01, T-02, T-03 fired', who: 'HORIZON + AI review', at: '24.10 18:30',
+    i: 'Figures vs trigger rules', o: 'Cash and forecast below their floors → 4 decision offers' },
+  { l: ['petri', 'laura'], c: 5, k: 'd', t: 'Decide the 4 offers', who: 'Petri (3 board) · Laura (1 CEO)', at: '24.10 18:30',
+    i: 'Freeze hiring, stop growth actions, corrections', o: 'Decisions recorded; plan r13' },
+  { l: 'admin', c: 6, k: 'p', t: 'Turns on the weekly web watch', who: 'Admin', at: '25.10 22:57',
+    i: 'Frequency: weekly', o: 'Schedule set; first run started' },
+  { l: 'ai', c: 6, k: 'ai', t: 'Searches the plan’s risks', who: 'HORIZON web watch', at: '25.10 23:03',
+    i: '6 queries from risks R-01…R-04 and assumption A-01', o: '7 findings with exact quotes, e.g. Kela tenders on price only from 2026', rule: 'Queries never carry the company’s or people’s names or money amounts.' },
+  { l: 'laura', c: 7, k: 'p', t: 'Uploads a later report', who: 'Laura · CEO', at: '26.10 11:24',
+    i: 'Sample "Kuukausiraportti maaliskuu 2027"', o: 'Document stored; reading starts at once' },
+  { l: 'ai', c: 7, k: 'ai', t: 'Reads it against the plan', who: 'HORIZON · Gemini 3.1 Pro', at: '26.10 11:25',
+    i: 'The report + the approved plan’s items', o: '9 findings tied to plan items (e.g. cash 158 k€ below trigger T-01) + 8 figures for the monthly form', rule: 'A finding counts only with a verbatim quote and a named plan item.' },
+  { l: 'laura', c: 7, k: 'd', t: 'Accepts 1, dismisses 1', who: 'Laura · reviewing role', at: '26.10 11:30',
+    i: 'Each finding with effect, plan item and quote', o: 'Accepted evidence feeds the next review; dismissal kept with its reason', rule: 'The AI never accepts evidence or changes the plan.' },
+  { l: 'petri', c: 7, k: 'p', t: 'Sees the findings', who: 'Petri · Board', at: '26.10 11:30',
+    i: 'What changed page', o: 'Read-only view: the board does not review evidence' },
+  { l: 'mikko', c: 7, k: 'p', t: 'Gets it in "waiting for you"', who: 'Mikko · reviewing role', at: '26.10 11:30',
+    i: 'Home page', o: '7 findings waiting for review' },
+]
+
+const $ = (id) => document.getElementById(id)
+const board = $('board'), scroller = $('scroller')
+const KIND = { p: '', ai: 'ai', d: 'decision', r: 'refused' }
+const el = (cls, html) => { const d = document.createElement('div'); d.className = cls; if (html) d.innerHTML = html; return d }
+
+board.append(el('corner'))
+const colHeads = COLS.map(([n, d]) => { const h = el('colhead', `<b>${n}</b><span>${d}</span>`); board.append(h); return h })
+const laneEls = {}, cells = {}
+LANES.forEach((ln, r) => {
+  const last = r === LANES.length - 1 ? ' row-last' : ''
+  const lane = el('lane' + (ln.ai ? ' ai' : '') + last, `<i class="dot"></i><b>${ln.name}</b><span>${ln.role}</span>`)
+  board.append(lane); laneEls[ln.id] = lane
+  COLS.forEach((_, c) => { const cell = el('cell' + last); board.append(cell); cells[ln.id + c] = cell })
+})
+// one chip per lane an event touches
+const chips = EV.map((e, i) => [].concat(e.l).map((l) => {
+  const b = document.createElement('button')
+  b.type = 'button'; b.className = 'chip ' + KIND[e.k]
+  b.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')} · ${e.at.split(' ')[1] || e.at}</span>${e.t}`
+  b.addEventListener('click', () => { stop(); board.classList.add('playing'); go(i) })
+  cells[l + e.c].append(b); return b
+}))
+const NS = 'http://www.w3.org/2000/svg'
+const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('class', 'links'); board.append(svg)
+
+const tallyRows = LANES.map((ln) => {
+  const li = document.createElement('li'); li.className = ln.ai ? 'ai' : ''
+  li.innerHTML = `<span>${ln.name}</span><span class="bar"><i style="width:0"></i></span><span>0</span>`
+  $('tally').append(li); return li
+})
+const maxCount = Math.max(...LANES.map((ln) => EV.filter((e) => [].concat(e.l).includes(ln.id)).length))
+
+let cur = 0, timer = null, raf = null
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+
+function box(chip) {
+  const b = board.getBoundingClientRect(), r = chip.getBoundingClientRect()
+  return { l: r.left - b.left, r: r.right - b.left, y: r.top - b.top + r.height / 2, x: r.left - b.left + r.width / 2 }
+}
+// a handoff: a curve from the previous event to this one, drawn with a travelling dot
+function link(from, to, ai) {
+  svg.setAttribute('width', board.scrollWidth); svg.setAttribute('height', board.scrollHeight)
+  const a = box(from), z = box(to)
+  const fwd = z.x >= a.x, sx = fwd ? a.r : a.l, ex = fwd ? z.l : z.r
+  const same = Math.abs(a.x - z.x) < 4
+  const d = same
+    ? `M ${a.r} ${a.y} C ${a.r + 34} ${a.y}, ${z.r + 34} ${z.y}, ${z.r} ${z.y}`
+    : `M ${sx} ${a.y} C ${sx + (fwd ? 40 : -40)} ${a.y}, ${ex - (fwd ? 40 : -40)} ${z.y}, ${ex} ${z.y}`
+  const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); if (ai) p.setAttribute('class', 'ai'); svg.append(p)
+  if (reduce) return
+  const len = p.getTotalLength(); p.style.strokeDasharray = len; p.style.strokeDashoffset = len
+  const dot = document.createElementNS(NS, 'circle'); dot.setAttribute('r', 4.5); if (ai) dot.setAttribute('class', 'ai'); svg.append(dot)
+  const t0 = performance.now(), dur = 650
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3)
+    p.style.strokeDashoffset = len * (1 - e)
+    const pt = p.getPointAtLength(len * e); dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y)
+    if (k < 1) raf = requestAnimationFrame(step); else dot.remove()
+  }
+  raf = requestAnimationFrame(step)
+}
+
+function go(i) {
+  cur = Math.max(0, Math.min(EV.length - 1, i))
+  const e = EV[cur]
+  chips.forEach((cs, j) => cs.forEach((c) => { c.classList.toggle('active', j === cur); c.classList.toggle('done', j < cur) }))
+  colHeads.forEach((h, c) => h.classList.toggle('on', c === e.c))
+  Object.entries(laneEls).forEach(([id, l]) => l.classList.toggle('on', [].concat(e.l).includes(id)))
+  cancelAnimationFrame(raf); svg.replaceChildren()
+  if (cur > 0) chips[cur].forEach((c) => link(chips[cur - 1][0], c, e.k === 'ai'))
+  // keep the active event in view inside the board's own scroller
+  const c = chips[cur][0], sr = scroller.getBoundingClientRect(), cr = c.getBoundingClientRect()
+  if (cr.left < sr.left + 160 || cr.right > sr.right - 20)
+    scroller.scrollTo({ left: scroller.scrollLeft + cr.left - sr.left - 180, behavior: reduce ? 'auto' : 'smooth' })
+  $('nTitle').textContent = e.t
+  $('nWho').textContent = `${e.who} · ${e.at}`
+  $('nIn').textContent = e.i; $('nOut').textContent = e.o; $('nRule').textContent = e.rule || ''
+  $('count').textContent = `${cur + 1} / ${EV.length}`; $('scrub').value = cur
+  LANES.forEach((ln, r) => {
+    const n = EV.slice(0, cur + 1).filter((x) => [].concat(x.l).includes(ln.id)).length
+    tallyRows[r].querySelector('i').style.width = `${(n / maxCount) * 100}%`
+    tallyRows[r].lastElementChild.textContent = n
+  })
+}
+const pace = () => 2600 / Number($('speed').value)
+function tick() { if (cur >= EV.length - 1) { stop(); return } go(cur + 1); timer = setTimeout(tick, pace()) }
+function play() { if (cur >= EV.length - 1) go(0); board.classList.add('playing'); $('play').textContent = 'Pause'; timer = setTimeout(tick, pace() * 0.6) }
+function stop() { clearTimeout(timer); timer = null; $('play').textContent = 'Play' }
+const manual = (i) => { stop(); board.classList.add('playing'); go(i) }
+$('play').addEventListener('click', () => (timer ? stop() : play()))
+$('prev').addEventListener('click', () => manual(cur - 1))
+$('next').addEventListener('click', () => manual(cur + 1))
+$('scrub').addEventListener('input', (ev) => manual(Number(ev.target.value)))
+document.addEventListener('keydown', (ev) => {
+  if (ev.target.closest('input, select')) return
+  if (ev.key === 'ArrowRight') manual(cur + 1)
+  if (ev.key === 'ArrowLeft') manual(cur - 1)
+})
+addEventListener('resize', () => go(cur))
+go(0)
+// the board is fully readable at rest; playback starts by itself unless the viewer asked for less motion
+if (!reduce) setTimeout(() => { if (!timer) play() }, 1400)
+</script>
+
+</body></html>
