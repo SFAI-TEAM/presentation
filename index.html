@@ -1,0 +1,564 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Plan, Watch, Act</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#EEF1F5; --stage:#FFFFFF; --surface:#FFFFFF; --surface2:#F5F7FA;
+  --ink:#17223A; --muted:#5F6D86; --line:#C7D0DC; --line2:#E1E7EE;
+  --blue:#2F55A4; --teal:#0E8A87; --amber:#D2711A;
+  --blue-t:#E6ECF8; --teal-t:#E0F3F2; --amber-t:#FBEBDC;
+  --shadow:0 1px 2px rgba(23,34,58,.06),0 12px 32px -18px rgba(23,34,58,.25);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E141D; --stage:#141C28; --surface:#141C28; --surface2:#1B2532;
+    --ink:#E8EDF4; --muted:#96A4B8; --line:#2E3B4D; --line2:#25303F;
+    --blue:#7D9BE6; --teal:#3CC2BC; --amber:#F0994C;
+    --blue-t:#1B2A4A; --teal-t:#10312F; --amber-t:#3A2513;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -18px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E141D; --stage:#141C28; --surface:#141C28; --surface2:#1B2532;
+  --ink:#E8EDF4; --muted:#96A4B8; --line:#2E3B4D; --line2:#25303F;
+  --blue:#7D9BE6; --teal:#3CC2BC; --amber:#F0994C;
+  --blue-t:#1B2A4A; --teal-t:#10312F; --amber-t:#3A2513;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -18px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5;padding-inline:clamp(16px,2.5vw,36px);padding-block:28px 40px}
+.wrap{max-width:1560px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px;margin-bottom:18px}
+.eyebrow{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+h1{font-family:"Bricolage Grotesque","IBM Plex Sans",sans-serif;font-weight:800;font-size:clamp(30px,4vw,46px);line-height:1;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h1 .b{color:var(--blue)} h1 .t{color:var(--teal)} h1 .a{color:var(--amber)}
+.sub{margin:8px 0 0;color:var(--muted);max-width:56ch;font-size:15px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sw{width:14px;height:14px;border-radius:4px;display:inline-block}
+.sw.b{background:var(--blue)} .sw.t{background:var(--teal)} .sw.a{background:var(--amber)}
+.legend svg{width:16px;height:16px;fill:var(--ink)}
+
+.stage{background:var(--stage);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow);overflow-x:auto;overflow-y:hidden}
+.stage svg{display:block;width:100%;height:auto;min-width:980px}
+
+/* ---------- SVG type & base ---------- */
+.t-d{font-family:"Bricolage Grotesque","IBM Plex Sans",sans-serif;font-weight:800;letter-spacing:-.01em;fill:var(--ink)}
+.t-b{font-family:"IBM Plex Sans",system-ui,sans-serif;fill:var(--ink)}
+.t-m{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;fill:var(--muted)}
+.mu{fill:var(--muted)}
+.up{letter-spacing:.12em;text-transform:uppercase}
+.lbl{paint-order:stroke;stroke:var(--stage);stroke-width:5px;stroke-linejoin:round}
+.box{fill:var(--surface);stroke:var(--line);stroke-width:1.5;transition:stroke .5s,fill .5s}
+.chip{fill:var(--surface2);stroke:var(--line2);stroke-width:1;transition:stroke .4s,fill .4s}
+.mod{transition:opacity .6s ease var(--d,0s)}
+.playing .mod:not(.live){opacity:.42}
+.mod.live .box{stroke:var(--mc);stroke-width:2;fill:color-mix(in srgb,var(--mc) 6%,var(--surface))}
+.mod.live .mtitle{fill:var(--mc)}
+
+.edge{fill:none;stroke:var(--line);stroke-width:2;transition:opacity .5s,stroke .5s}
+.edge.dash{stroke-dasharray:5 5}
+.playing .edge:not(.live){opacity:.5}
+.edge.live{stroke:var(--ec);stroke-dasharray:9 7;animation:march .7s linear var(--d,0s) infinite,edgeOn .5s ease var(--d,0s) both}
+.ar-ink{fill:var(--line)} .ar-b{fill:var(--blue)} .ar-t{fill:var(--teal)} .ar-a{fill:var(--amber)}
+.edge.live.b{marker-end:url(#ar-b)} .edge.live.t{marker-end:url(#ar-t)} .edge.live.a{marker-end:url(#ar-a)}
+@keyframes march{to{stroke-dashoffset:-16}}
+@keyframes edgeOn{from{opacity:.5}to{opacity:1}}
+
+.pk{opacity:0;fill:var(--ec);offset-rotate:0deg}
+.pk.live{animation:travel 3s ease-in-out var(--d,0s) infinite}
+@supports not (offset-path:path("M0 0")){.pk{display:none}}
+@keyframes travel{0%{offset-distance:0%;opacity:0}8%{opacity:1}44%{offset-distance:100%;opacity:1}52%{offset-distance:100%;opacity:0}100%{offset-distance:100%;opacity:0}}
+
+/* inputs */
+.chip.live,.ichip.live .chip{stroke:var(--blue);fill:var(--blue-t);transition-delay:var(--d,0s)}
+
+/* stratmap */
+.ph circle{fill:var(--surface2);stroke:var(--line);stroke-width:1.5}
+.ph .pn{fill:var(--muted)}
+.ph .nm{fill:var(--ink)}
+#phases.live .ph circle{animation:pipFill .35s ease calc(var(--d,0s) + var(--i)*.55s) both}
+#phases.live .ph .pn{animation:pipText .35s ease calc(var(--d,0s) + var(--i)*.55s) both}
+#phases.live .ph .nm{animation:nmOn .35s ease calc(var(--d,0s) + var(--i)*.55s) both}
+@keyframes pipFill{to{fill:var(--blue);stroke:var(--blue)}}
+@keyframes pipText{to{fill:#fff}}
+@keyframes nmOn{to{fill:var(--blue)}}
+.gate .gbox{fill:var(--surface2);stroke:var(--line);stroke-width:1.5}
+.gate.live .gbox{animation:gateOn .6s ease var(--d,0s) both}
+.gate.live .gtxt{animation:gateTxt .6s ease var(--d,0s) both}
+.gate .person{fill:var(--ink)}
+.gate.live .person{animation:pipText .5s ease var(--d,0s) both}
+@keyframes gateOn{50%{stroke-width:3}to{fill:var(--ink);stroke:var(--ink)}}
+@keyframes gateTxt{to{fill:var(--surface)}}
+
+/* oplan */
+.row .dot{fill:var(--line)}
+#rows.live .row .dot{animation:dotOn .3s ease calc(var(--d,0s) + var(--i)*.25s) both}
+@keyframes dotOn{to{fill:var(--blue)}}
+.ver rect{fill:var(--blue-t);stroke:var(--blue);stroke-width:1}
+.ver text{fill:var(--blue);font-weight:500}
+.ver .v2{opacity:0}
+#ver.live .v1{animation:vOut .4s ease var(--d,0s) both}
+#ver.live .v2{animation:vIn .4s ease var(--d,0s) both}
+#ver.live rect{animation:vRect .6s ease var(--d,0s) both}
+@keyframes vOut{to{opacity:0;transform:translateY(-6px)}}
+@keyframes vIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes vRect{40%{fill:var(--teal);stroke:var(--teal)}to{fill:var(--teal-t);stroke:var(--teal)}}
+
+/* horizon */
+.ring{fill:none;stroke:var(--line);stroke-width:1}
+.radar-bg{fill:var(--surface2);stroke:var(--line);stroke-width:1.5}
+#sweep{transform-origin:1115px 240px;animation:spin 4s linear infinite;fill:var(--teal);opacity:.45}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ripple{fill:none;stroke:var(--teal);stroke-width:1.5;transform-origin:1115px 240px;animation:ripple 3s ease-out infinite}
+.ripple.r2{animation-delay:1.5s}
+@keyframes ripple{0%{transform:scale(.15);opacity:.8}100%{transform:scale(1.05);opacity:0}}
+.tag rect{fill:var(--surface2);stroke:var(--line);stroke-width:1}
+.tag text{fill:var(--muted)}
+.tag.live rect{stroke:var(--teal);fill:var(--teal-t);transition-delay:var(--d,0s)}
+.tag.live text{fill:var(--teal);transition-delay:var(--d,0s)}
+.tag rect,.tag text{transition:all .4s}
+.blip{opacity:0;transform-box:fill-box;transform-origin:center}
+#blip.live .blip{animation:blipIn .5s ease var(--d,0s) both}
+#blip.live .blipring{animation:blipRing 1.2s ease-out calc(var(--d,0s) + .3s) infinite}
+.blipring{fill:none;stroke:var(--teal);stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
+@keyframes blipIn{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+@keyframes blipRing{0%{opacity:.9;transform:scale(.5)}100%{opacity:0;transform:scale(2.4)}}
+.cad text{fill:var(--muted)}
+#cad.live .cad text{animation:cadOn .4s ease calc(var(--d,0s) + var(--i)*.3s) both}
+@keyframes cadOn{to{fill:var(--ink)}}
+.rlab{opacity:0}
+.rlab.live{animation:fadeUp .5s ease var(--d,0s) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* james */
+.agent rect{fill:var(--surface2);stroke:var(--line);stroke-width:1}
+.agent text{fill:var(--muted)}
+#agents.live .agent rect{animation:agOn .3s ease calc(var(--d,0s) + var(--i)*.12s) both}
+#agents.live .agent text{animation:agTx .3s ease calc(var(--d,0s) + var(--i)*.12s) both}
+#agents.live .agent.pick rect{animation:agPick .5s ease calc(var(--d,0s) + 1.4s) both}
+#agents.live .agent.pick text{animation:pipText .5s ease calc(var(--d,0s) + 1.4s) both}
+#agents.live #agentName{animation:fadeUp .5s ease calc(var(--d,0s) + 1.6s) both}
+#agentName{opacity:0}
+@keyframes agOn{to{stroke:var(--amber)}}
+@keyframes agTx{to{fill:var(--ink)}}
+@keyframes agPick{to{fill:var(--amber);stroke:var(--amber)}}
+.draft rect.pg{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.draft .ln{stroke:var(--line);stroke-width:3;stroke-linecap:round;stroke-dasharray:80;stroke-dashoffset:80}
+#draft.live .ln{animation:write .5s ease calc(var(--d,0s) + var(--i)*.22s) both;stroke:var(--amber)}
+@keyframes write{to{stroke-dashoffset:0}}
+.draft .stamp{fill:var(--amber);opacity:0}
+#draft.live .stamp{animation:fadeUp .4s ease calc(var(--d,0s) + 1.5s) both}
+.chk circle{fill:var(--surface2);stroke:var(--line);stroke-width:1.2}
+.chk .tick{fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.chk text{fill:var(--muted)}
+#checks.live .chk circle{animation:chkOn .3s ease calc(var(--d,0s) + var(--i)*.38s) both}
+#checks.live .chk .tick{animation:tickOn .3s ease calc(var(--d,0s) + var(--i)*.38s + .1s) both}
+#checks.live .chk text{animation:agTx .3s ease calc(var(--d,0s) + var(--i)*.38s) both}
+@keyframes chkOn{to{fill:var(--amber);stroke:var(--amber)}}
+@keyframes tickOn{to{opacity:1}}
+.pp rect{fill:var(--surface2);stroke:var(--line);stroke-width:1}
+.pp text{fill:var(--muted);font-weight:500}
+#pp.live .pp.go rect{animation:agPick .4s ease var(--d,0s) both}
+#pp.live .pp.go text{animation:pipText .4s ease var(--d,0s) both}
+#pp.live .pp.ch rect{animation:agPick .4s ease calc(var(--d,0s) + 1.3s) both}
+#pp.live .pp.ch text{animation:pipText .4s ease calc(var(--d,0s) + 1.3s) both}
+#pp.live .pp.go rect{animation:agPick .4s ease var(--d,0s) both,agUn .4s ease calc(var(--d,0s) + 1.3s) both}
+#pp.live .pp.go text{animation:pipText .4s ease var(--d,0s) both,agTx .4s ease calc(var(--d,0s) + 1.3s) both}
+@keyframes agUn{to{fill:var(--surface2);stroke:var(--amber)}}
+
+/* outputs */
+.out .box{fill:var(--surface)}
+.out.live .box{stroke:var(--oc);fill:color-mix(in srgb,var(--oc) 8%,var(--surface));transition-delay:var(--d,0s)}
+.out.live .otitle{fill:var(--oc);transition-delay:var(--d,0s)}
+.otitle{transition:fill .4s}
+.playing .out:not(.live){opacity:.42}
+.out{transition:opacity .6s}
+
+@media (prefers-reduced-motion:reduce){
+  #sweep,.ripple,.edge.live,.pk.live{animation:none}
+  .pk{display:none}
+  .edge.live{stroke-dasharray:none;opacity:1}
+  .edge.live.dash{stroke-dasharray:5 5}
+}
+
+/* ---------- caption & controls ---------- */
+.caption{display:grid;grid-template-columns:auto 1fr auto;gap:18px 28px;align-items:center;margin-top:18px;padding:16px 20px;background:var(--stage);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow)}
+.steps{display:flex;gap:6px}
+.steps button{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface2);color:var(--muted);font:500 13px "IBM Plex Mono",monospace;cursor:pointer;transition:all .3s}
+.steps button[aria-current="step"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.steps button:focus-visible,.ctl button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.ctext{min-width:0}
+.ctext h2{font-family:"Bricolage Grotesque","IBM Plex Sans",sans-serif;font-weight:700;font-size:20px;margin:0 0 3px;letter-spacing:-.01em;text-wrap:balance}
+.ctext p{margin:0;color:var(--muted);font-size:14.5px;max-width:78ch}
+.ctext.fade{animation:capIn .5s ease both}
+@keyframes capIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.ctl{display:flex;gap:6px;align-items:center}
+.ctl button{height:36px;padding:0 12px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface2);color:var(--ink);font:500 13px "IBM Plex Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.ctl button:hover{border-color:var(--ink)}
+.ctl button svg{width:14px;height:14px;fill:currentColor}
+.ctl .play{background:var(--ink);color:var(--surface);border-color:var(--ink);min-width:96px;justify-content:center}
+.bar{grid-column:1/-1;height:3px;background:var(--line2);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ink);transition:width linear}
+.hint{margin:12px 4px 0;font-size:12.5px;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+kbd{font:inherit;padding:1px 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--surface)}
+@media (max-width:760px){.caption{grid-template-columns:1fr}.ctl{justify-content:flex-start}}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <p class="eyebrow">STRATMAP Strategic Planning Assistant</p>
+    <h1><span class="b">Plan.</span> <span class="t">Watch.</span> <span class="a">Act.</span></h1>
+    <p class="sub">How the system turns a company's situation into a living plan that keeps watching the world and prepares the work, with a person deciding at every gate.</p>
+  </div>
+  <div class="legend" aria-label="Colour key">
+    <span><i class="sw b"></i>STRATMAP plans</span>
+    <span><i class="sw t"></i>HORIZON watches</span>
+    <span><i class="sw a"></i>JAMES prepares</span>
+    <span><svg viewBox="-8 -8 16 16" aria-hidden="true"><circle cx="0" cy="-3" r="3"/><path d="M-6.5,7 a6.5,6.5 0 0 1 13,0 z"/></svg>a person decides</span>
+  </div>
+</header>
+
+<div class="stage" id="stage">
+<svg viewBox="0 0 1600 850" role="img" aria-label="Flow of the STRATMAP system: company inputs go into STRATMAP, which produces a validated plan; HORIZON continuously watches the world around the plan and routes signals; JAMES drafts the actions under human approval; outputs are a board-ready plan, a live dashboard and ready-to-review drafts." xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ar-ink" d="M0,1 L10,5 L0,9 z"/></marker>
+  <marker id="ar-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ar-b" d="M0,1 L10,5 L0,9 z"/></marker>
+  <marker id="ar-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ar-t" d="M0,1 L10,5 L0,9 z"/></marker>
+  <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ar-a" d="M0,1 L10,5 L0,9 z"/></marker>
+  <symbol id="person" viewBox="-8 -8 16 16"><circle cx="0" cy="-3" r="3"/><path d="M-6.5,7 a6.5,6.5 0 0 1 13,0 z"/></symbol>
+  <symbol id="doc" viewBox="0 0 20 24"><path d="M2,1 H13 L18,6 V23 H2 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M13,1 V6 H18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+</defs>
+
+<!-- ===== EDGES (drawn first, under boxes) ===== -->
+<g id="edges">
+  <path id="e-in1" class="edge b" style="--ec:var(--blue)" d="M290,295 H370" marker-end="url(#ar)"/>
+  <path id="e-in2" class="edge b" style="--ec:var(--blue)" d="M290,385 H370" marker-end="url(#ar)"/>
+  <path id="e-in3" class="edge b" style="--ec:var(--blue)" d="M290,475 H370" marker-end="url(#ar)"/>
+  <path id="e-s2p" class="edge b" style="--ec:var(--blue)" d="M660,405 H730" marker-end="url(#ar)"/>
+  <path id="e-p2h" class="edge b" style="--ec:var(--blue)" d="M840,260 V150 H1000" marker-end="url(#ar)"/>
+  <path id="e-p2j" class="edge b" style="--ec:var(--blue)" d="M900,470 C950,470 950,560 1000,560" marker-end="url(#ar)"/>
+  <path id="e-p2rep" class="edge b" style="--ec:var(--blue)" d="M815,560 V785 H1425" marker-end="url(#ar)"/>
+  <path id="e-h2p" class="edge t dash" style="--ec:var(--teal)" d="M1000,300 C960,300 950,322 900,322" marker-end="url(#ar)"/>
+  <path id="e-h2j" class="edge t" style="--ec:var(--teal)" d="M1175,360 V440" marker-end="url(#ar)"/>
+  <path id="e-h2dash" class="edge t" style="--ec:var(--teal)" d="M1360,200 H1425" marker-end="url(#ar)"/>
+  <path id="e-j2p" class="edge a dash" style="--ec:var(--amber)" d="M1000,640 C950,640 950,550 900,550" marker-end="url(#ar)"/>
+  <path id="e-j2out" class="edge a" style="--ec:var(--amber)" d="M1360,590 H1425" marker-end="url(#ar)"/>
+  <path id="e-w1" class="edge t dash" style="--ec:var(--teal)" d="M1030,46 L1079,158"/>
+  <path id="e-w2" class="edge t dash" style="--ec:var(--teal)" d="M1109,46 L1112,157"/>
+  <path id="e-w3" class="edge t dash" style="--ec:var(--teal)" d="M1201,46 L1151,158"/>
+</g>
+
+<!-- edge labels -->
+<g class="t-m" font-size="10.5">
+  <text class="lbl" x="920" y="141" text-anchor="middle">every item is watched</text>
+  <text class="lbl" x="950" y="519" text-anchor="middle">action seeds</text>
+  <text class="lbl" x="948" y="296" text-anchor="middle">plan update</text>
+  <text class="lbl" x="1186" y="404">needs action</text>
+  <text class="lbl" x="1392" y="190" text-anchor="middle">what's new</text>
+  <text class="lbl" x="950" y="606" text-anchor="middle">change the plan</text>
+  <text class="lbl" x="1392" y="580" text-anchor="middle">for approval</text>
+  <text class="lbl" x="826" y="690">for the board</text>
+  <text class="lbl up" x="985" y="38" text-anchor="end">the outside world →</text>
+</g>
+
+<!-- packets -->
+<g id="packets">
+  <circle class="pk" id="pk-in1" r="6" style="--ec:var(--blue);offset-path:path('M290,295 H370')"/>
+  <circle class="pk" id="pk-in2" r="6" style="--ec:var(--blue);offset-path:path('M290,385 H370')"/>
+  <circle class="pk" id="pk-in3" r="6" style="--ec:var(--blue);offset-path:path('M290,475 H370')"/>
+  <circle class="pk" id="pk-s2p" r="6" style="--ec:var(--blue);offset-path:path('M660,405 H730')"/>
+  <circle class="pk" id="pk-p2h" r="6" style="--ec:var(--blue);offset-path:path('M840,260 V150 H1000')"/>
+  <circle class="pk" id="pk-p2j" r="6" style="--ec:var(--blue);offset-path:path('M900,470 C950,470 950,560 1000,560')"/>
+  <circle class="pk" id="pk-p2rep" r="6" style="--ec:var(--blue);offset-path:path('M815,560 V785 H1425')"/>
+  <circle class="pk" id="pk-h2p" r="6" style="--ec:var(--teal);offset-path:path('M1000,300 C960,300 950,322 900,322')"/>
+  <circle class="pk" id="pk-h2j" r="6" style="--ec:var(--teal);offset-path:path('M1175,360 V440')"/>
+  <circle class="pk" id="pk-h2dash" r="6" style="--ec:var(--teal);offset-path:path('M1360,200 H1425')"/>
+  <circle class="pk" id="pk-j2p" r="6" style="--ec:var(--amber);offset-path:path('M1000,640 C950,640 950,550 900,550')"/>
+  <circle class="pk" id="pk-j2out" r="6" style="--ec:var(--amber);offset-path:path('M1360,590 H1425')"/>
+  <circle class="pk" id="pk-w1" r="5" style="--ec:var(--teal);offset-path:path('M1030,46 L1079,158')"/>
+  <circle class="pk" id="pk-w2" r="5" style="--ec:var(--teal);offset-path:path('M1109,46 L1112,157')"/>
+  <circle class="pk" id="pk-w3" r="5" style="--ec:var(--teal);offset-path:path('M1201,46 L1151,158')"/>
+</g>
+
+<!-- ===== INPUTS ===== -->
+<g class="mod" id="m-inputs" style="--mc:var(--blue)">
+  <text class="t-m up" x="50" y="240" font-size="10.5">What goes in</text>
+  <g class="ichip" id="chip1">
+    <rect class="chip" x="50" y="260" width="240" height="70" rx="10"/>
+    <use href="#doc" x="66" y="278" width="20" height="24" style="color:var(--blue)"/>
+    <text class="t-b" x="96" y="290" font-size="13.5" font-weight="600">Your situation</text>
+    <text class="t-b mu" x="96" y="309" font-size="11">where the company stands, what it wants</text>
+  </g>
+  <g class="ichip" id="chip2">
+    <rect class="chip" x="50" y="350" width="240" height="70" rx="10"/>
+    <use href="#doc" x="66" y="368" width="20" height="24" style="color:var(--blue)"/>
+    <use href="#doc" x="72" y="372" width="20" height="24" style="color:var(--blue)"/>
+    <text class="t-b" x="102" y="380" font-size="13.5" font-weight="600">Your documents</text>
+    <text class="t-b mu" x="102" y="399" font-size="11">reports, spreadsheets, decks</text>
+  </g>
+  <g class="ichip" id="chip3">
+    <rect class="chip" x="50" y="440" width="240" height="70" rx="10"/>
+    <text class="t-d" x="68" y="480" font-size="22" style="fill:var(--blue)">?</text>
+    <text class="t-b" x="96" y="470" font-size="13.5" font-weight="600">Your answers</text>
+    <text class="t-b mu" x="96" y="489" font-size="11">to the questions the assistant asks</text>
+  </g>
+</g>
+
+<!-- ===== STRATMAP ===== -->
+<g class="mod" id="m-stratmap" style="--mc:var(--blue)">
+  <rect class="box" x="370" y="180" width="290" height="460" rx="14"/>
+  <text class="t-d mtitle" x="392" y="216" font-size="22">STRATMAP</text>
+  <text class="t-b mu" x="392" y="236" font-size="11.5">the planning engine · each phase feeds the next</text>
+
+  <text class="t-m up" x="392" y="272" font-size="9.5">8 phases · what each one produces</text>
+  <line x1="404" y1="306" x2="404" y2="524" stroke="var(--line)" stroke-width="1.5"/>
+  <g id="phases">
+    <g class="ph" style="--i:0"><circle cx="404" cy="296" r="10"/><text class="t-m pn" x="404" y="299.5" font-size="9" text-anchor="middle">0</text><text class="t-b nm" x="424" y="295" font-size="11.5" font-weight="600">Preparation</text><text class="t-b mu" x="424" y="308" font-size="9.5">team set up, first market scan, CEO's guidance</text></g>
+    <g class="ph" style="--i:1"><circle cx="404" cy="330" r="10"/><text class="t-m pn" x="404" y="333.5" font-size="9" text-anchor="middle">1</text><text class="t-b nm" x="424" y="329" font-size="11.5" font-weight="600">First picture</text><text class="t-b mu" x="424" y="342" font-size="9.5">what is known, what is missing, go / no-go</text></g>
+    <g class="ph" style="--i:2"><circle cx="404" cy="364" r="10"/><text class="t-m pn" x="404" y="367.5" font-size="9" text-anchor="middle">2</text><text class="t-b nm" x="424" y="363" font-size="11.5" font-weight="600">Where we stand</text><text class="t-b mu" x="424" y="376" font-size="9.5">full situation analysis, risks, assumptions</text></g>
+    <g class="ph" style="--i:3"><circle cx="404" cy="398" r="10"/><text class="t-m pn" x="404" y="401.5" font-size="9" text-anchor="middle">3</text><text class="t-b nm" x="424" y="397" font-size="11.5" font-weight="600">Options</text><text class="t-b mu" x="424" y="410" font-size="9.5">3 options, business cases, board picks one</text></g>
+    <g class="ph" style="--i:4"><circle cx="404" cy="432" r="10"/><text class="t-m pn" x="404" y="435.5" font-size="9" text-anchor="middle">4A</text><text class="t-b nm" x="424" y="431" font-size="11.5" font-weight="600">The approach</text><text class="t-b mu" x="424" y="444" font-size="9.5">concept, end states, guardrails, KPIs</text></g>
+    <g class="ph" style="--i:5"><circle cx="404" cy="466" r="10"/><text class="t-m pn" x="404" y="469.5" font-size="9" text-anchor="middle">4B</text><text class="t-b nm" x="424" y="465" font-size="11.5" font-weight="600">The plan (OPLAN)</text><text class="t-b mu" x="424" y="478" font-size="9.5">implementation plan, resources, Plan B</text></g>
+    <g class="ph" style="--i:6"><circle cx="404" cy="500" r="10"/><text class="t-m pn" x="404" y="503.5" font-size="9" text-anchor="middle">5</text><text class="t-b nm" x="424" y="499" font-size="11.5" font-weight="600">Execution</text><text class="t-b mu" x="424" y="512" font-size="9.5">go-live order, reviews, quick adjustments</text></g>
+    <g class="ph" style="--i:7"><circle cx="404" cy="534" r="10"/><text class="t-m pn" x="404" y="537.5" font-size="9" text-anchor="middle">6</text><text class="t-b nm" x="424" y="533" font-size="11.5" font-weight="600">Transition</text><text class="t-b mu" x="424" y="546" font-size="9.5">follow-up, sale or exit; lessons learned</text></g>
+  </g>
+
+  <g class="gate" id="gate-s">
+    <rect class="gbox" x="392" y="566" width="248" height="52" rx="26"/>
+    <use class="person" href="#person" x="410" y="582" width="20" height="20"/>
+    <text class="t-b gtxt" x="440" y="588" font-size="12.5" font-weight="600">A person reviews &amp; validates</text>
+    <text class="t-m gtxt" x="440" y="605" font-size="9.5">each phase · nothing counts before</text>
+  </g>
+</g>
+
+<!-- ===== THE PLAN ===== -->
+<g class="mod" id="m-oplan" style="--mc:var(--blue)">
+  <path class="box" d="M744,260 H872 L900,288 V546 a14,14 0 0 1 -14,14 H744 a14,14 0 0 1 -14,-14 V274 a14,14 0 0 1 14,-14 z"/>
+  <path d="M872,260 V288 H900" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+  <text class="t-d mtitle" x="750" y="298" font-size="20">THE PLAN</text>
+  <g class="ver" id="ver">
+    <rect x="750" y="310" width="98" height="20" rx="5"/>
+    <text class="t-m v1" x="799" y="324" font-size="10.5" text-anchor="middle">OPLAN v2.0</text>
+    <text class="t-m v2" x="799" y="324" font-size="10.5" text-anchor="middle">OPLAN v2.0.1</text>
+  </g>
+  <g id="rows">
+    <g class="row" style="--i:0"><circle class="dot" cx="756" cy="367" r="4"/><text class="t-b" x="768" y="371" font-size="12">Goals &amp; end state</text></g>
+    <g class="row" style="--i:1"><circle class="dot" cx="756" cy="397" r="4"/><text class="t-b" x="768" y="401" font-size="12">Risks to watch</text></g>
+    <g class="row" style="--i:2"><circle class="dot" cx="756" cy="427" r="4"/><text class="t-b" x="768" y="431" font-size="12">Lines of action</text></g>
+    <g class="row" style="--i:3"><circle class="dot" cx="756" cy="457" r="4"/><text class="t-b" x="768" y="461" font-size="12">Action seeds</text></g>
+    <g class="row" style="--i:4"><circle class="dot" cx="756" cy="487" r="4"/><text class="t-b" x="768" y="491" font-size="12">Decision points</text></g>
+  </g>
+  <text class="t-m" x="750" y="528" font-size="9.5">versioned · every change tracked</text>
+  <text class="t-m" x="750" y="542" font-size="9.5">validated by people</text>
+</g>
+
+<!-- ===== OUTSIDE WORLD TAGS ===== -->
+<g id="world">
+  <g class="tag" id="w1"><rect x="1000" y="22" width="60" height="24" rx="12"/><text class="t-m" x="1030" y="38" font-size="10.5" text-anchor="middle">markets</text></g>
+  <g class="tag" id="w2"><rect x="1070" y="22" width="78" height="24" rx="12"/><text class="t-m" x="1109" y="38" font-size="10.5" text-anchor="middle">regulation</text></g>
+  <g class="tag" id="w3"><rect x="1158" y="22" width="86" height="24" rx="12"/><text class="t-m" x="1201" y="38" font-size="10.5" text-anchor="middle">competitors</text></g>
+</g>
+
+<!-- ===== HORIZON ===== -->
+<g class="mod" id="m-horizon" style="--mc:var(--teal)">
+  <rect class="box" x="1000" y="70" width="360" height="290" rx="14"/>
+  <circle class="radar-bg" cx="1115" cy="240" r="90"/>
+  <circle class="ring" cx="1115" cy="240" r="60"/>
+  <circle class="ring" cx="1115" cy="240" r="30"/>
+  <path class="ring" d="M1025,240 H1205 M1115,150 V330"/>
+  <path id="sweep" d="M1115,240 L1115,150 A90,90 0 0 1 1178.6,176.4 Z"/>
+  <circle class="ripple" cx="1115" cy="240" r="90"/>
+  <circle class="ripple r2" cx="1115" cy="240" r="90"/>
+  <circle cx="1115" cy="240" r="4" fill="var(--teal)"/>
+  <g id="blip">
+    <circle class="blipring" cx="1152" cy="204" r="9"/>
+    <circle class="blip" cx="1152" cy="204" r="6" fill="var(--teal)"/>
+  </g>
+
+  <text class="t-d mtitle" x="1225" y="108" font-size="22">HORIZON</text>
+  <text class="t-b mu" x="1225" y="128" font-size="11.5">always watching</text>
+  <text class="t-m up" x="1225" y="165" font-size="9.5">Watch rhythm</text>
+  <g id="cad">
+    <g class="cad" style="--i:0"><text class="t-b" x="1225" y="187" font-size="11.5">risks · every hour</text></g>
+    <g class="cad" style="--i:1"><text class="t-b" x="1225" y="208" font-size="11.5">markets · daily</text></g>
+    <g class="cad" style="--i:2"><text class="t-b" x="1225" y="229" font-size="11.5">rules · weekly</text></g>
+    <g class="cad" style="--i:3"><text class="t-b" x="1225" y="250" font-size="11.5">decisions · on event</text></g>
+  </g>
+  <text class="t-m up" x="1225" y="284" font-size="9.5">Each signal is sorted</text>
+  <text class="t-b mu" x="1225" y="301" font-size="10.5">info · plan update · action</text>
+  <g class="gate" id="gate-h">
+    <rect class="gbox" x="1225" y="314" width="116" height="30" rx="15"/>
+    <use class="person" href="#person" x="1236" y="321" width="16" height="16"/>
+    <text class="t-b gtxt" x="1258" y="333" font-size="11" font-weight="600">you decide</text>
+  </g>
+</g>
+
+<!-- ===== JAMES ===== -->
+<g class="mod" id="m-james" style="--mc:var(--amber)">
+  <rect class="box" x="1000" y="440" width="360" height="310" rx="14"/>
+  <text class="t-d mtitle" x="1020" y="478" font-size="22">JAMES</text>
+  <text class="t-b mu" x="1020" y="498" font-size="11.5">drafts the work, people decide</text>
+
+  <text class="t-m up" x="1020" y="527" font-size="9.5">8 specialist agents</text>
+  <g id="agents">
+    <g class="agent" style="--i:0"><rect x="1020" y="536" width="24" height="24" rx="6"/><text class="t-m" x="1032" y="552" font-size="11" text-anchor="middle">B</text></g>
+    <g class="agent" style="--i:1"><rect x="1050" y="536" width="24" height="24" rx="6"/><text class="t-m" x="1062" y="552" font-size="11" text-anchor="middle">L</text></g>
+    <g class="agent pick" style="--i:2"><rect x="1080" y="536" width="24" height="24" rx="6"/><text class="t-m" x="1092" y="552" font-size="11" text-anchor="middle">K</text></g>
+    <g class="agent" style="--i:3"><rect x="1110" y="536" width="24" height="24" rx="6"/><text class="t-m" x="1122" y="552" font-size="11" text-anchor="middle">V</text></g>
+    <g class="agent" style="--i:4"><rect x="1140" y="536" width="24" height="24" rx="6"/><text class="t-m" x="1152" y="552" font-size="11" text-anchor="middle">H</text></g>
+    <g class="agent" style="--i:5"><rect x="1170" y="536" width="24" height="24" rx="6"/><text class="t-m" x="1182" y="552" font-size="11" text-anchor="middle">S</text></g>
+    <g class="agent" style="--i:6"><rect x="1200" y="536" width="24" height="24" rx="6"/><text class="t-m" x="1212" y="552" font-size="11" text-anchor="middle">T</text></g>
+    <g class="agent" style="--i:7"><rect x="1230" y="536" width="24" height="24" rx="6"/><text class="t-m" x="1242" y="552" font-size="11" text-anchor="middle">O</text></g>
+    <text id="agentName" class="t-b" x="1266" y="552" font-size="11" style="fill:var(--amber)" font-weight="600">→ commerce agent</text>
+  </g>
+
+  <g class="draft" id="draft">
+    <path class="pg" d="M1020,580 H1092 L1110,598 V700 H1020 Z" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+    <path d="M1092,580 V598 H1110" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+    <line class="ln" style="--i:0" x1="1030" y1="612" x2="1080" y2="612"/>
+    <line class="ln" style="--i:1" x1="1030" y1="626" x2="1098" y2="626"/>
+    <line class="ln" style="--i:2" x1="1030" y1="640" x2="1088" y2="640"/>
+    <line class="ln" style="--i:3" x1="1030" y1="654" x2="1098" y2="654"/>
+    <line class="ln" style="--i:4" x1="1030" y1="668" x2="1070" y2="668"/>
+    <text class="t-m stamp up" x="1065" y="690" font-size="9.5" text-anchor="middle" font-weight="500">draft only</text>
+  </g>
+
+  <g id="checks">
+    <text class="t-m up" x="1130" y="590" font-size="9.5">7 checks before anyone sees it</text>
+    <g class="chk" style="--i:0"><circle cx="1137" cy="605" r="5.5"/><path class="tick" d="M1134.5,605 l2,2 l4,-4"/><text class="t-b" x="1149" y="608.5" font-size="10.5">right company</text></g>
+    <g class="chk" style="--i:1"><circle cx="1137" cy="620" r="5.5"/><path class="tick" d="M1134.5,620 l2,2 l4,-4"/><text class="t-b" x="1149" y="623.5" font-size="10.5">dates in range</text></g>
+    <g class="chk" style="--i:2"><circle cx="1137" cy="635" r="5.5"/><path class="tick" d="M1134.5,635 l2,2 l4,-4"/><text class="t-b" x="1149" y="638.5" font-size="10.5">right language</text></g>
+    <g class="chk" style="--i:3"><circle cx="1137" cy="650" r="5.5"/><path class="tick" d="M1134.5,650 l2,2 l4,-4"/><text class="t-b" x="1149" y="653.5" font-size="10.5">within budget</text></g>
+    <g class="chk" style="--i:4"><circle cx="1137" cy="665" r="5.5"/><path class="tick" d="M1134.5,665 l2,2 l4,-4"/><text class="t-b" x="1149" y="668.5" font-size="10.5">clearly marked as a draft</text></g>
+    <g class="chk" style="--i:5"><circle cx="1137" cy="680" r="5.5"/><path class="tick" d="M1134.5,680 l2,2 l4,-4"/><text class="t-b" x="1149" y="683.5" font-size="10.5">HORIZON intel is fresh</text></g>
+    <g class="chk" style="--i:6"><circle cx="1137" cy="695" r="5.5"/><path class="tick" d="M1134.5,695 l2,2 l4,-4"/><text class="t-b" x="1149" y="698.5" font-size="10.5">every input already approved</text></g>
+  </g>
+
+  <g class="gate" id="gate-j">
+    <rect class="gbox" x="1020" y="712" width="118" height="28" rx="14"/>
+    <use class="person" href="#person" x="1030" y="718" width="16" height="16"/>
+    <text class="t-b gtxt" x="1050" y="730" font-size="11" font-weight="600">you approve</text>
+  </g>
+  <text class="t-m up" x="1148" y="729" font-size="9.5">gate:</text>
+  <g id="pp">
+    <g class="pp go"><rect x="1182" y="714" width="36" height="24" rx="6"/><text class="t-m" x="1200" y="730" font-size="10" text-anchor="middle">GO</text></g>
+    <g class="pp ch"><rect x="1224" y="714" width="62" height="24" rx="6"/><text class="t-m" x="1255" y="730" font-size="10" text-anchor="middle">CHANGE</text></g>
+    <g class="pp no"><rect x="1292" y="714" width="54" height="24" rx="6"/><text class="t-m" x="1319" y="730" font-size="10" text-anchor="middle">NO-GO</text></g>
+  </g>
+</g>
+
+<!-- ===== OUTPUTS ===== -->
+<g id="m-outputs">
+  <text class="t-m up" x="1425" y="144" font-size="10.5">What comes out</text>
+  <g class="out" id="out-dash" style="--oc:var(--teal)">
+    <rect class="box" x="1425" y="162" width="160" height="76" rx="10"/>
+    <text class="t-b otitle" x="1441" y="188" font-size="13.5" font-weight="600">Live dashboard</text>
+    <text class="t-b mu" x="1441" y="206" font-size="11">what's changing around</text>
+    <text class="t-b mu" x="1441" y="220" font-size="11">the plan, and why</text>
+  </g>
+  <g class="out" id="out-drafts" style="--oc:var(--amber)">
+    <rect class="box" x="1425" y="552" width="160" height="76" rx="10"/>
+    <text class="t-b otitle" x="1441" y="578" font-size="13.5" font-weight="600">Ready-to-review</text>
+    <text class="t-b otitle" x="1441" y="594" font-size="13.5" font-weight="600">drafts</text>
+    <text class="t-b mu" x="1441" y="612" font-size="11">letters, filings, contracts…</text>
+  </g>
+  <g class="out" id="out-rep" style="--oc:var(--blue)">
+    <rect class="box" x="1425" y="748" width="160" height="76" rx="10"/>
+    <text class="t-b otitle" x="1441" y="774" font-size="13.5" font-weight="600">Board-ready plan</text>
+    <text class="t-b mu" x="1441" y="792" font-size="11">the full report, versioned,</text>
+    <text class="t-b mu" x="1441" y="806" font-size="11">as Word or PDF</text>
+  </g>
+</g>
+</svg>
+</div>
+
+<div class="caption" id="caption">
+  <div class="steps" id="steps" role="tablist" aria-label="Steps"></div>
+  <div class="ctext" id="ctext"><h2 id="ctitle">One picture of the whole system</h2><p id="cbody">Your situation goes in on the left. STRATMAP builds the plan. HORIZON keeps watching the world around it. JAMES prepares the work. A person decides at every gate.</p></div>
+  <div class="ctl">
+    <button id="prev" type="button" title="Previous step (←)"><svg viewBox="0 0 16 16"><path d="M11 2 L4 8 L11 14 z"/></svg></button>
+    <button id="play" class="play" type="button" title="Play / pause (space)"><svg id="playIcon" viewBox="0 0 16 16"><path d="M4 2 L13 8 L4 14 z"/></svg><span id="playTxt">Pause</span></button>
+    <button id="next" type="button" title="Next step (→)"><svg viewBox="0 0 16 16"><path d="M5 2 L12 8 L5 14 z"/></svg></button>
+    <button id="fs" type="button" title="Full screen (F)"><svg viewBox="0 0 16 16"><path d="M2 6 V2 H6 M10 2 H14 V6 M14 10 V14 H10 M6 14 H2 V10" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Full screen</button>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+</div>
+<p class="hint"><kbd>→</kbd> next · <kbd>←</kbd> back · <kbd>space</kbd> pause · <kbd>F</kbd> full screen · the loop repeats on its own</p>
+</div>
+
+<script>
+(function(){
+  const SCENES = [
+    {t:"What goes in", b:"The company describes where it stands and what it wants, adds its own documents, and answers the questions the assistant asks. That is all the system needs to start.",
+     dur:7, live:{"m-inputs":0,"m-stratmap":0,"chip1":.2,"chip2":.9,"chip3":1.6,"e-in1":.2,"e-in2":.9,"e-in3":1.6,"pk-in1":.3,"pk-in2":1,"pk-in3":1.7}},
+    {t:"STRATMAP builds the plan", b:"Eight planning phases, one at a time: from preparation and the first picture of the situation, through the strategic assessment and the options, to the approach, the implementation plan, execution and transition. Each phase produces its own documents and hands its notes to the next. A person reviews and validates every phase before anything counts.",
+     dur:13, live:{"m-stratmap":0,"phases":.4,"gate-s":5.6,"e-s2p":7,"pk-s2p":7.1,"m-oplan":7.4,"rows":7.8}},
+    {t:"One plan, three jobs", b:"The validated plan is one versioned object. It goes to the board as a report, it is handed to HORIZON to watch, and it gives JAMES its list of actions to prepare.",
+     dur:9, live:{"m-oplan":0,"rows":0,"e-p2rep":.4,"pk-p2rep":.5,"out-rep":1.4,"e-p2h":2.4,"pk-p2h":2.5,"m-horizon":2.8,"e-p2j":4.4,"pk-p2j":4.5,"m-james":4.8}},
+    {t:"HORIZON keeps watching", b:"Around the clock, HORIZON scans markets, rules and competitors against every item in the plan: risks every hour, markets daily, rules weekly. Each signal is sorted: just information, a plan update, or something that needs action.",
+     dur:13, live:{"m-horizon":0,"cad":.2,"w1":.3,"w2":1.1,"w3":1.9,"e-w1":.3,"e-w2":1.1,"e-w3":1.9,"pk-w1":.4,"pk-w2":1.2,"pk-w3":2,"blip":2.8,"gate-h":3.4,"e-h2dash":4.2,"pk-h2dash":4.3,"out-dash":4.9,"e-h2p":6.6,"pk-h2p":6.7,"m-oplan":7,"ver":7.6,"e-h2j":9.4,"pk-h2j":9.5,"m-james":10}},
+    {t:"JAMES prepares the work", b:"For each action a specialist agent writes a draft, seven checks run, and a person approves it. Nothing is sent or filed by the system itself. At the decision gate a GO moves on and a CHANGE updates the plan.",
+     dur:13, live:{"m-james":0,"agents":.3,"draft":2.3,"checks":3.8,"gate-j":6.8,"e-j2out":7.4,"pk-j2out":7.5,"out-drafts":8,"pp":9.2,"e-j2p":10.6,"pk-j2p":10.7,"m-oplan":11,"ver":11.4}},
+    {t:"What comes out", b:"A board-ready plan, a live dashboard of what is changing around it, and ready-to-review drafts of the work. Every one of them passes a person before it counts.",
+     dur:9, live:{"m-inputs":0,"m-stratmap":0,"m-oplan":0,"m-horizon":0,"m-james":0,"rows":0,"out-rep":.4,"out-dash":1,"out-drafts":1.6,"e-p2rep":.3,"pk-p2rep":.4,"e-h2dash":.9,"pk-h2dash":1,"e-j2out":1.5,"pk-j2out":1.6,"gate-s":2.6,"gate-h":3.1,"gate-j":3.6}}
+  ];
+  const stage=document.getElementById('stage'), ctext=document.getElementById('ctext'),
+        ctitle=document.getElementById('ctitle'), cbody=document.getElementById('cbody'),
+        bar=document.getElementById('bar'), steps=document.getElementById('steps'),
+        playBtn=document.getElementById('play'), playTxt=document.getElementById('playTxt'), playIcon=document.getElementById('playIcon');
+  let cur=-1, timer=null, playing=true;
+  SCENES.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.textContent=i+1;b.title=s.t;b.addEventListener('click',()=>{go(i);});steps.appendChild(b);});
+
+  function clearLive(){
+    document.querySelectorAll('#stage .live').forEach(el=>{el.classList.remove('live');el.style.removeProperty('--d');});
+  }
+  function go(i){
+    cur=(i+SCENES.length)%SCENES.length;
+    const s=SCENES[cur];
+    clearLive();
+    stage.classList.add('playing');
+    void stage.offsetWidth; // restart CSS animations
+    for(const id in s.live){const el=document.getElementById(id); if(!el) continue; el.style.setProperty('--d',s.live[id]+'s'); el.classList.add('live');}
+    steps.querySelectorAll('button').forEach((b,k)=>{ if(k===cur) b.setAttribute('aria-current','step'); else b.removeAttribute('aria-current'); });
+    ctitle.textContent=s.t; cbody.textContent=s.b;
+    ctext.classList.remove('fade'); void ctext.offsetWidth; ctext.classList.add('fade');
+    bar.style.transition='none'; bar.style.width='0';
+    void bar.offsetWidth;
+    if(playing){ bar.style.transition='width '+s.dur+'s linear'; bar.style.width='100%'; }
+    clearTimeout(timer);
+    if(playing) timer=setTimeout(()=>go(cur+1), s.dur*1000);
+  }
+  function setPlaying(p){
+    playing=p; playTxt.textContent=p?'Pause':'Play';
+    playIcon.innerHTML=p?'<path d="M3 2 H6.5 V14 H3 z M9.5 2 H13 V14 H9.5 z"/>':'<path d="M4 2 L13 8 L4 14 z"/>';
+    clearTimeout(timer);
+    if(p && cur>=0){ go(cur); }
+    else { bar.style.transition='none'; }
+  }
+  document.getElementById('prev').addEventListener('click',()=>go(cur-1));
+  document.getElementById('next').addEventListener('click',()=>go(cur+1));
+  playBtn.addEventListener('click',()=>setPlaying(!playing));
+  document.getElementById('fs').addEventListener('click',()=>{
+    const el=document.documentElement;
+    if(document.fullscreenElement){document.exitFullscreen&&document.exitFullscreen();}
+    else if(el.requestFullscreen){el.requestFullscreen().catch(()=>{});}
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+    if(e.key==='ArrowRight'){e.preventDefault();go(cur+1);}
+    else if(e.key==='ArrowLeft'){e.preventDefault();go(cur-1);}
+    else if(e.key===' '){e.preventDefault();setPlaying(!playing);}
+    else if(e.key==='f'||e.key==='F'){document.getElementById('fs').click();}
+  });
+  setPlaying(true);
+  setTimeout(()=>go(0), 1400);
+})();
+</script>
+
+</body></html>
