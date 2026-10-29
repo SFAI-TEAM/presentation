@@ -1,0 +1,466 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>STRATMAP Case Flows</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: two real cases (LITE and FULL route) on one swimlane board (people × stages); a player walks each case event by event. */
+:root {
+  --bg: #F5F5F3; --surface: #FFFFFF; --ink: #1B1D22; --ink-2: #5B616E; --line: #DEE1E7;
+  --accent: #2E4AC4; --accent-soft: #E8ECFB; --ai: #6B4FBB; --ai-soft: #EFEAFB;
+  --ok: #1F7A4D; --ok-soft: #E3F3EA; --crit: #B42318; --crit-soft: #FBE7E5; --hold: #9A5B00; --hold-soft: #FBF0DC;
+  --dim: 0.42; --on-accent: #FFFFFF;
+  --font-body: "Inter", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --lane-w: 150px; --col-w: 132px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121318; --surface: #1B1D24; --ink: #E9EAEE; --ink-2: #A3A8B4; --line: #2D3039;
+  --accent: #8EA2FF; --accent-soft: #24294A; --ai: #B9A4F5; --ai-soft: #2C2545;
+  --ok: #6FD3A0; --ok-soft: #173327; --crit: #FF8F84; --crit-soft: #3A1E1C; --hold: #F2B866; --hold-soft: #3A2D16;
+  --dim: 0.38; --on-accent: #121318; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121318; --surface: #1B1D24; --ink: #E9EAEE; --ink-2: #A3A8B4; --line: #2D3039;
+  --accent: #8EA2FF; --accent-soft: #24294A; --ai: #B9A4F5; --ai-soft: #2C2545;
+  --ok: #6FD3A0; --ok-soft: #173327; --crit: #FF8F84; --crit-soft: #3A1E1C; --hold: #F2B866; --hold-soft: #3A2D16;
+  --dim: 0.38; --on-accent: #121318; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 18px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font: 500 12px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 0; font-size: clamp(24px, 3.2vw, 34px); line-height: 1.15; font-weight: 700; text-wrap: balance; }
+.lede { margin: 0; color: var(--ink-2); max-width: 74ch; }
+
+/* route switch */
+.routes { display: flex; flex-wrap: wrap; gap: 8px; }
+.route { font: 600 14px/1.25 var(--font-body); text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 10px; padding: 10px 14px; cursor: pointer; display: grid; gap: 2px; min-height: 44px; flex: 1 1 260px; max-width: 460px; }
+.route span { font: 400 12.5px/1.3 var(--font-body); color: var(--ink-2); }
+.route[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.route:hover { border-color: var(--accent); }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--ink-2); }
+.facts b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* player */
+.player { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px 14px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.btn { font: 600 14px/1 var(--font-body); border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 8px; min-height: 40px; padding: 0 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { border-color: var(--accent); }
+.btn:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-visible, .route:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); min-width: 108px; justify-content: center; }
+.btn svg { width: 16px; height: 16px; }
+.count { font: 500 13px/1 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 64px; }
+.scrub { flex: 1 1 220px; min-width: 0; accent-color: var(--accent); }
+.speed { font: 500 13px var(--font-body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; min-height: 40px; padding: 0 8px; }
+label.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* board */
+.board-scroll { overflow-x: auto; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.board { position: relative; display: grid; }
+.colhead { padding: 10px 10px 8px; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); background: var(--surface); transition: background .25s; }
+.colhead b { display: block; font-size: 13px; }
+.colhead span { font: 400 11.5px/1.3 var(--font-mono); color: var(--ink-2); }
+.colhead.on { background: var(--accent-soft); }
+.corner { border-bottom: 1px solid var(--line); }
+.lane { padding: 10px; border-bottom: 1px solid var(--line); display: grid; align-content: start; gap: 2px; transition: background .25s; }
+.lane b { font-size: 13.5px; }
+.lane span { font-size: 12px; color: var(--ink-2); line-height: 1.3; }
+.lane .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-bottom: 4px; }
+.lane.ai .dot { background: var(--ai); }
+.lane.on { background: var(--accent-soft); }
+.lane.ai.on { background: var(--ai-soft); }
+.cell { border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px 7px; display: flex; flex-direction: column; gap: 6px; min-height: 84px; }
+.row-last { border-bottom: 0; }
+.chip { font: 500 12px/1.3 var(--font-body); text-align: left; border: 1px solid transparent; border-radius: 7px; padding: 6px 7px;
+  background: var(--accent-soft); color: var(--ink); cursor: pointer; transition: opacity .25s, transform .25s, box-shadow .25s; }
+.chip.ai { background: var(--ai-soft); }
+.chip.decision { background: var(--ok-soft); }
+.chip.hold { background: var(--hold-soft); }
+.chip.refused { background: var(--crit-soft); }
+.chip .n { font: 500 10.5px/1 var(--font-mono); color: var(--ink-2); display: block; margin-bottom: 3px; }
+.board.playing .chip:not(.done):not(.active) { opacity: var(--dim); }
+.chip.active { transform: scale(1.04); box-shadow: 0 0 0 2px var(--accent), 0 6px 18px rgba(20, 30, 80, .18); opacity: 1; }
+.chip.ai.active { box-shadow: 0 0 0 2px var(--ai), 0 6px 18px rgba(60, 30, 120, .2); }
+.chip.decision.active { box-shadow: 0 0 0 2px var(--ok), 0 6px 18px rgba(20, 80, 50, .18); }
+.chip.hold.active { box-shadow: 0 0 0 2px var(--hold), 0 6px 18px rgba(120, 80, 20, .18); }
+.chip.refused.active { box-shadow: 0 0 0 2px var(--crit), 0 6px 18px rgba(120, 20, 20, .18); }
+svg.links { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+svg.links path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+svg.links path.ai { stroke: var(--ai); }
+svg.links circle { fill: var(--accent); }
+svg.links circle.ai { fill: var(--ai); }
+
+/* narration */
+.now { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 820px) { .now { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.panel h2 { margin: 0 0 4px; font-size: 19px; line-height: 1.3; text-wrap: balance; }
+.who { font: 500 12.5px/1.4 var(--font-mono); color: var(--ink-2); margin: 0 0 12px; }
+.io { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .io { grid-template-columns: 1fr; } }
+.io div { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.io h3 { margin: 0 0 4px; font: 600 11px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.io p { margin: 0; font-size: 14px; }
+.rule { margin: 12px 0 0; font-size: 13.5px; padding: 8px 12px; border-radius: 8px; background: var(--accent-soft); }
+.rule:empty { display: none; }
+.tally h2 { font-size: 15px; margin-bottom: 10px; }
+.tally ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tally li { display: grid; grid-template-columns: 124px minmax(0, 1fr) 28px; align-items: center; gap: 10px; font-size: 13px; }
+.bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s; }
+.tally li.ai .bar i { background: var(--ai); }
+.tally li span:last-child { font: 500 12px var(--font-mono); text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12.5px; color: var(--ink-2); }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+.lg-p::before { background: var(--accent-soft); } .lg-ai::before { background: var(--ai-soft); }
+.lg-d::before { background: var(--ok-soft); } .lg-h::before { background: var(--hold-soft); } .lg-r::before { background: var(--crit-soft); }
+.foot { font-size: 12.5px; color: var(--ink-2); margin: 0; max-width: 90ch; }
+@media (max-width: 640px) { :root { --lane-w: 112px; --col-w: 132px; } }
+@media (prefers-reduced-motion: reduce) { .chip, .bar i, .lane, .colhead { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow" id="eyebrow">STRATMAP · two real cases from start to end</div>
+    <h1 id="h1">Who did what, and what came out</h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <div class="routes" role="group" aria-label="Choose the case">
+    <button class="route" type="button" id="r-lite" data-route="lite">LITE route · Pihlaja Fysio Oy<span>Small company: K0 questions, one plan, board decision, monthly follow-up</span></button>
+    <button class="route" type="button" id="r-full" data-route="full">FULL route · Vaimea Oy<span>Phases 0–4B: question rounds, 28 products, war-games, two plans, go-live</span></button>
+  </div>
+  <ul class="facts" id="facts"></ul>
+
+  <div class="player" role="group" aria-label="Player">
+    <button class="btn" id="prev" type="button" aria-label="Previous event"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button class="btn primary" id="play" type="button">Play</button>
+    <button class="btn" id="next" type="button" aria-label="Next event"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <span class="count" id="count" aria-live="polite">1 / 1</span>
+    <label class="vh" for="scrub">Event</label>
+    <input class="scrub" id="scrub" type="range" min="0" max="1" value="0">
+    <label class="vh" for="speed">Speed</label>
+    <select class="speed" id="speed"><option value="1">1×</option><option value="1.6" selected>1.5×</option><option value="2.5">2.5×</option></select>
+  </div>
+
+  <div class="board-scroll" id="scroller">
+    <div class="board" id="board" aria-label="Swimlane of the case"></div>
+  </div>
+  <div class="legend"><span class="lg-p">a person acts</span><span class="lg-ai">AI or HORIZON works</span><span class="lg-d">decision recorded</span><span class="lg-h">decision to revise, defer or escalate</span><span class="lg-r">refused or blocked</span></div>
+
+  <section class="now">
+    <div class="panel" aria-live="polite">
+      <h2 id="nTitle"></h2>
+      <p class="who" id="nWho"></p>
+      <div class="io">
+        <div><h3>Input</h3><p id="nIn"></p></div>
+        <div><h3>Output</h3><p id="nOut"></p></div>
+      </div>
+      <p class="rule" id="nRule"></p>
+    </div>
+    <div class="panel tally">
+      <h2>Actions so far</h2>
+      <ul id="tally"></ul>
+    </div>
+  </section>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+// kind: p = person acts, ai = AI/HORIZON, d = decision, h = revise/defer/escalate, r = refused or blocked
+const ROUTES = {
+  lite: {
+    eyebrow: 'STRATMAP LITE · one operation from start to end',
+    h1: 'Pihlaja Fysio Oy: who did what, and what came out',
+    lede: 'The real Pihlaja case, step by step, from creating the operation to a report read against the approved plan. Press play, or pick any event. People decide; the AI drafts, checks and flags.',
+    facts: [['4', 'people'], ['14', 'K0 questions'], ['10', 'plan revisions to the board'], ['7', 'monthly decisions'], ['24–26.10.2026', '']],
+    foot: 'Times are local Finnish time. The company and people are the product owner\'s TESTI2 test company; the CEO\'s correction feedback and the board\'s decisions were written by a separate AI playing those people and are marked "SIMULOITU" in the records. Everything else is the real system: screens, records and AI output. The two months were run on one day with prepared monthly reports.',
+    lanes: [
+      { id: 'admin', name: 'Admin (SFAi)', role: 'Facilitator · administrator' },
+      { id: 'laura', name: 'Laura Pihlaja', role: 'CEO · Accountable Executive' },
+      { id: 'mikko', name: 'Mikko Pihlaja', role: 'Finance · Assessment Lead' },
+      { id: 'petri', name: 'Petri Aalto', role: 'Board member · Board' },
+      { id: 'ai', name: 'AI & HORIZON', role: 'Drafts, checks, monitors', ai: true },
+    ],
+    cols: [['Setup', '24.10 18:16'], ['Starting point K0', '24.10 18:16'], ['Plan built', '24.10 18:16–18:29'], ['Board decision', '24.10 18:29'],
+      ['October', '24.10 18:29'], ['November', '24.10 18:30'], ['Web watch', '25.10 22:57'], ['Living plan', '26.10 11:24']],
+    ev: [
+      { l: 'admin', c: 0, k: 'p', t: 'Creates the operation', who: 'Admin · SFAi facilitator', at: '24.10 18:16',
+        i: 'Company name, LITE route, Finnish', o: 'Operation "Pihlaja Fysio Oy – kasvusuunnitelma 2027–2029"' },
+      { l: 'admin', c: 0, k: 'p', t: 'Invites 3 people with roles', who: 'Admin', at: '24.10 18:16',
+        i: 'Email address + role, per person', o: 'Role assignments: CEO, finance lead, board', rule: 'Access comes only from a role in the operation; a login gives no decision rights.' },
+      { l: ['laura', 'mikko', 'petri'], c: 0, k: 'p', t: 'Confirm their roles', who: 'Laura, Mikko, Petri', at: '24.10 18:16',
+        i: 'Each signs in and confirms', o: '3 role confirmations, each by the person', rule: 'A role carries no rights until its holder confirms it.' },
+      { l: 'laura', c: 0, k: 'p', t: 'Uploads the company profile', who: 'Laura · CEO', at: '24.10 18:16',
+        i: 'Yritysprofiili v1.0 (docx)', o: 'Encrypted document, status received' },
+      { l: 'laura', c: 1, k: 'p', t: 'Answers K0 part A (10 questions)', who: 'Laura · CEO', at: '24.10 18:16',
+        i: 'Who decides, goals, money limits, capacity, contracts, options and weights, risk tolerance', o: 'Answered workshop record (revision 2)' },
+      { l: 'mikko', c: 1, k: 'p', t: 'Answers K0 part B (4 questions)', who: 'Mikko · finance lead', at: '24.10 18:16',
+        i: '12-month cash forecast and its basis', o: 'Answered workshop record (revision 2)' },
+      { l: 'ai', c: 2, k: 'ai', t: 'Drafts the plan model r1', who: 'AI analyst · Claude Opus 5.5', at: '24.10 18:21',
+        i: 'K0 answers + company profile', o: 'Plan model r1 and the board package (goals, options, cash, triggers, risks)', rule: 'Every later check is done by a different model, so the drafter never checks its own work.' },
+      { l: 'ai', c: 2, k: 'ai', t: 'Independent fact check', who: 'Verifier · Gemini 2.5 Flash', at: '24.10 18:21',
+        i: 'The plan’s external claim C-02', o: 'Claim confirmed against its source; r2 VERIFIED' },
+      { l: 'ai', c: 2, k: 'ai', t: 'Red team: 10 objections', who: 'Outside board member · Claude Sonnet 4.6', at: '24.10 18:22',
+        i: 'The board package', o: '10 objections (5 high), e.g. "the CFO’s own forecast is below the board’s cash floor"' },
+      { l: 'laura', c: 2, k: 'p', t: 'Correction round', who: 'Laura · CEO (content simulated)', at: '24.10 18:22',
+        i: 'The board package', o: 'Factual errors (cash floor 150 k€, not 170), disagreements, unclear points' },
+      { l: 'ai', c: 2, k: 'ai', t: 'Revises; consistency check ×2', who: 'AI analyst + checker · GPT-5.4', at: '24.10 18:25–18:29',
+        i: 'Red team + CEO feedback', o: '13 then 5 findings answered, 0 open: plan r10 CHECKED', rule: 'The server refuses board approval before the consistency check passes.' },
+      { l: 'laura', c: 3, k: 'r', t: 'Tries to approve alone', who: 'Laura · CEO', at: '24.10 18:29',
+        i: 'Approve plan r10', o: 'Refused (HTTP 403), nothing recorded', rule: 'Approving the plan is the board’s right, not the CEO’s.' },
+      { l: 'petri', c: 3, k: 'd', t: 'Approves plan r10', who: 'Petri · Board (simulated)', at: '24.10 18:29',
+        i: 'Board package of the exact revision r10', o: 'Approval with reasons; HORIZON-LITE starts monitoring', rule: 'A decision names the exact revision it approves.' },
+      { l: 'admin', c: 4, k: 'p', t: 'Records the October report', who: 'Admin (normally the finance lead)', at: '24.10 18:29',
+        i: '7 figures: cash 198 k€, margin 8.1 %, queue 15 days …', o: 'Month 2026-10 recorded' },
+      { l: 'ai', c: 4, k: 'ai', t: 'Monitor + review: T-03 fired', who: 'HORIZON + AI review · Claude Opus 5.5', at: '24.10 18:29',
+        i: 'Figures vs the plan’s trigger rules', o: 'Margin below 8.4 % → 3 decision offers with options, deadline and decider' },
+      { l: ['petri', 'laura'], c: 4, k: 'd', t: 'Decide the 3 offers', who: 'Petri (2 board) · Laura (1 CEO)', at: '24.10 18:29',
+        i: 'Each offer: options, recommendation, criterion', o: 'Decisions with reasons; written into plan r12', rule: 'Each offer names who decides: the CEO or the board.' },
+      { l: 'admin', c: 5, k: 'p', t: 'Records the November report', who: 'Admin', at: '24.10 18:30',
+        i: 'Cash 168 k€ after customer B gave notice', o: 'Month 2026-11 recorded' },
+      { l: 'ai', c: 5, k: 'ai', t: 'T-01, T-02, T-03 fired', who: 'HORIZON + AI review', at: '24.10 18:30',
+        i: 'Figures vs trigger rules', o: 'Cash and forecast below their floors → 4 decision offers' },
+      { l: ['petri', 'laura'], c: 5, k: 'd', t: 'Decide the 4 offers', who: 'Petri (3 board) · Laura (1 CEO)', at: '24.10 18:30',
+        i: 'Freeze hiring, stop growth actions, corrections', o: 'Decisions recorded; plan r13' },
+      { l: 'admin', c: 6, k: 'p', t: 'Turns on the weekly web watch', who: 'Admin', at: '25.10 22:57',
+        i: 'Frequency: weekly', o: 'Schedule set; first run started' },
+      { l: 'ai', c: 6, k: 'ai', t: 'Searches the plan’s risks', who: 'HORIZON web watch', at: '25.10 23:03',
+        i: '6 queries from risks R-01…R-04 and assumption A-01', o: '7 findings with exact quotes, e.g. Kela tenders on price only from 2026', rule: 'Queries never carry the company’s or people’s names or money amounts.' },
+      { l: 'laura', c: 7, k: 'p', t: 'Uploads a later report', who: 'Laura · CEO', at: '26.10 11:24',
+        i: 'Sample "Kuukausiraportti maaliskuu 2027"', o: 'Document stored; reading starts at once' },
+      { l: 'ai', c: 7, k: 'ai', t: 'Reads it against the plan', who: 'HORIZON · Gemini 3.1 Pro', at: '26.10 11:25',
+        i: 'The report + the approved plan’s items', o: '9 findings tied to plan items (e.g. cash 158 k€ below trigger T-01) + 8 figures for the monthly form', rule: 'A finding counts only with a verbatim quote and a named plan item.' },
+      { l: 'laura', c: 7, k: 'd', t: 'Accepts 1, dismisses 1', who: 'Laura · reviewing role', at: '26.10 11:30',
+        i: 'Each finding with effect, plan item and quote', o: 'Accepted evidence feeds the next review; dismissal kept with its reason', rule: 'The AI never accepts evidence or changes the plan.' },
+      { l: 'petri', c: 7, k: 'p', t: 'Sees the findings', who: 'Petri · Board', at: '26.10 11:30',
+        i: 'What changed page', o: 'Read-only view: the board does not review evidence' },
+      { l: 'mikko', c: 7, k: 'p', t: 'Gets it in "waiting for you"', who: 'Mikko · reviewing role', at: '26.10 11:30',
+        i: 'Home page', o: '7 findings waiting for review' },
+    ],
+  },
+  full: {
+    eyebrow: 'STRATMAP FULL · one operation through phases 0–4B',
+    h1: 'Vaimea Oy: the full route, who did what',
+    lede: 'The real Vaimea case on 29 October 2026: a question round before every phase, AI drafts checked and validated by the competent person, war-games on the options and plans, and every gate decided by the person who holds the right. Press play, or pick any event.',
+    facts: [['7', 'people in 8 roles'], ['69', 'questions in 8 rounds'], ['28', 'products validated'], ['18', 'war-games, 191 findings dispositioned'], ['17', 'gate decisions'], ['29.10.2026, 10:37–19:58', '']],
+    foot: 'Times are local Finnish time on 29.10.2026. The company and people are the Vaimea Oy test company of the product owner\'s material; their answers, reviews, decisions and dispositions were written by a separate AI playing those people and are marked "SIMULOITU" in the records. Everything else is the real system. Between 12:19 and 14:54 the run was paused while bugs it found were fixed; the same operation then continued. Phases 5–6 cannot start yet because the canon does not bind their start conditions.',
+    lanes: [
+      { id: 'admin', name: 'Admin (SFAi)', role: 'Facilitator · administrator' },
+      { id: 'johanna', name: 'Johanna Rask', role: 'CEO · Accountable Executive' },
+      { id: 'kari', name: 'Kari Mäntynen', role: 'Board chair · Board' },
+      { id: 'antti', name: 'Antti Kärnä', role: 'Sales · Strategic Planning Lead' },
+      { id: 'mika', name: 'Mika Salonen', role: 'Production · Operational executive and decision authority' },
+      { id: 'teemu', name: 'Teemu Virta', role: 'Logistics · Operational Planning Lead' },
+      { id: 'sari', name: 'Sari Lehtonen', role: 'Finance · Functional Owner' },
+      { id: 'ai', name: 'STRATMAP AI', role: 'Drafts, verifies, war-games', ai: true },
+    ],
+    cols: [['Setup', '10:37'], ['P0–P1 Start', '10:38–11:10'], ['P2 Assessment', '11:12–11:44'], ['P3S Options', '11:46–12:01'],
+      ['P3O Operational', '12:02–16:12'], ['P4A Concepts', '16:14–16:58'], ['P4B Plans', '17:00–19:26'], ['Go-live', '19:58']],
+    ev: [
+      { l: 'admin', c: 0, k: 'p', t: 'Creates a FULL operation', who: 'Admin · SFAi facilitator', at: '10:37',
+        i: 'Company, FULL route, Finnish', o: 'Operation "Vaimea Oy – Pohjoismaiden laajentuminen 2027–2029"' },
+      { l: ['johanna', 'kari', 'antti', 'mika', 'teemu', 'sari'], c: 0, k: 'p', t: 'Confirm their roles', who: 'All six company people', at: '10:37',
+        i: 'Invitation with a role; each signs in', o: 'Every role confirmed by its holder', rule: 'Access comes only from a confirmed role; a login gives no decision rights.' },
+      { l: 'johanna', c: 0, k: 'p', t: 'Uploads the company profile', who: 'Johanna · CEO', at: '10:37',
+        i: 'Yritysprofiili v1.0', o: 'Encrypted, scanned background document' },
+      { l: 'johanna', c: 1, k: 'p', t: 'Answers the P0 round (8 questions)', who: 'Johanna · CEO', at: '10:38',
+        i: 'The questions this phase needs', o: 'Answered question round, a revision by the person', rule: 'A question round runs before every phase.' },
+      { l: 'ai', c: 1, k: 'ai', t: 'Drafts PRD-0001 and PRD-0002', who: 'STRATMAP AI · Gemini 2.5 Flash', at: '10:40',
+        i: 'Answers + company profile', o: 'Readiness record and initial direction, graded claim by claim' },
+      { l: 'johanna', c: 1, k: 'p', t: 'Returns both with feedback', who: 'Johanna · validator', at: '10:40–10:46',
+        i: 'The exact drafts', o: 'Returned for revision with the change requested; the AI redrafts' },
+      { l: 'ai', c: 1, k: 'ai', t: 'Independent fact check', who: 'Verifier · independent model', at: '10:45–10:49',
+        i: 'Decision-critical claims', o: 'Outside facts confirmed; the company’s own facts stay unverified', rule: 'VAL-0067: unverified critical facts need verification or an explicit risk acceptance.' },
+      { l: 'johanna', c: 1, k: 'p', t: 'Validates with a risk acceptance', who: 'Johanna · validator', at: '10:49',
+        i: 'Redraft r2', o: 'VAL; the accepted evidence risk is on record' },
+      { l: 'mika', c: 1, k: 'p', t: 'Returns, then validates PRD-0004', who: 'Mika · operational executive', at: '10:55–11:00',
+        i: 'Initial operational situation', o: 'Returned once, redraft validated' },
+      { l: 'johanna', c: 1, k: 'd', t: 'PP-1: proceed', who: 'Johanna · Accountable Executive', at: '11:10',
+        i: 'PRD-0003 + PRD-0004, both VAL', o: 'Continue: Sweden first, Norway in a limited way', rule: 'A gate opens only when its prerequisites hold on the exact revisions.' },
+      { l: 'johanna', c: 2, k: 'p', t: 'P2 round, then reviews', who: 'Johanna · CEO', at: '11:12–11:40',
+        i: '8 questions; the assessment drafts', o: 'Answers; PRD-0005–0007 each returned once and validated' },
+      { l: 'johanna', c: 2, k: 'd', t: 'PP-2: develop options', who: 'Johanna · Accountable Executive', at: '11:40',
+        i: 'Strategic assessment', o: 'AUTHORIZED_TO_DEVELOP_OPTIONS' },
+      { l: 'mika', c: 2, k: 'p', t: 'Validates the planning alert', who: 'Mika · operational executive', at: '11:40–11:44',
+        i: 'PRD-0011', o: 'Returned once, validated and issued' },
+      { l: 'ai', c: 3, k: 'ai', t: 'Develops the strategic options', who: 'STRATMAP AI', at: '11:50',
+        i: 'Mandate PRD-0009 + answers', o: 'Option set A, B, C with costs and conditions' },
+      { l: 'mika', c: 3, k: 'p', t: 'Advises on the options', who: 'Mika · operational advice', at: '11:54–11:57',
+        i: 'The option set', o: 'PRD-0008 validated: C is feasible with conditions' },
+      { l: 'johanna', c: 3, k: 'd', t: 'PP-3: selects option C', who: 'Johanna · Accountable Executive', at: '12:01',
+        i: 'PRD-0010, one exact option revision', o: 'Specification-led project sales in Sweden and Norway, about 540 k€ for 2027–2029', rule: 'A selection binds the exact option revision.' },
+      { l: 'kari', c: 3, k: 'r', t: 'Holds the same right, not asked', who: 'Kari · Board', at: '12:01',
+        i: 'PP-3, Strategic CONOPS and plan approval allow the CEO or the board', o: 'The CEO decided every time; an open question for the product owner', rule: 'Gap: nothing asks for the board when both hold the right.' },
+      { l: 'ai', c: 4, k: 'ai', t: 'Design, guidance, courses of action', who: 'STRATMAP AI', at: '12:03–16:10',
+        i: 'Strategic planning direction PRD-0017', o: 'PRD-0012–0016 and the operational course-of-action set' },
+      { l: 'mika', c: 4, k: 'r', t: 'Refused: name the decision replaced', who: 'Mika · operational executive', at: '14:58',
+        i: 'A second mission analysis decision', o: 'SUPERSESSION_REQUIRED: nothing recorded', rule: 'A new decision must name the one it supersedes; nothing is overwritten.' },
+      { l: 'ai', c: 4, k: 'ai', t: 'War-games the courses of action', who: 'STRATMAP AI · challenge simulation', at: '15:05–15:54',
+        i: 'The exact course-of-action revisions', o: '3 runs; the AI plays the opponent and the disruptions' },
+      { l: 'mika', c: 4, k: 'p', t: 'Dispositions 33 findings', who: 'Mika · operational executive', at: '15:08–15:55',
+        i: 'Each material finding', o: 'Incorporated, accepted as risk or sent to monitoring, with reasons', rule: 'Open material findings block the decision; the AI never dispositions.' },
+      { l: 'mika', c: 4, k: 'd', t: 'Selects OEO-1 with modifications', who: 'Mika · decision authority', at: '16:07',
+        i: 'PRD-0015 and the dispositioned war-games', o: 'Stockholm hub, Norway by agent; Ljudform terms and overflow printing first' },
+      { l: 'antti', c: 5, k: 'p', t: 'Returns, then validates', who: 'Antti · Strategic Planning Lead', at: '16:15–16:38',
+        i: 'PRD-0018, 0019, 0021', o: 'Each validated after one return' },
+      { l: 'johanna', c: 5, k: 'd', t: 'Approves the Strategic CONOPS', who: 'Johanna · Accountable Executive', at: '16:19',
+        i: 'PRD-0018 r2 with a current war-game', o: 'APPROVE_EXACT_REVISION' },
+      { l: ['teemu', 'sari'], c: 5, k: 'p', t: 'Review concepts and requirements', who: 'Teemu · Sari', at: '16:24–16:56',
+        i: 'PRD-0020, 0022, 0024, 0025', o: 'Each returned once, redrafted, validated' },
+      { l: 'mika', c: 5, k: 'd', t: 'Releases the operational draft', who: 'Mika · operational executive', at: '16:58',
+        i: 'PRD-0024 + 0025', o: 'Released for detailed planning; not an approved plan' },
+      { l: 'ai', c: 6, k: 'ai', t: 'Drafts both plans, 13 war-games', who: 'STRATMAP AI', at: '17:01–19:24',
+        i: 'Approved concepts + 10 answers', o: 'PRD-0028 and PRD-0035, war-gamed at plan level' },
+      { l: 'mika', c: 6, k: 'p', t: 'Dispositions 143 findings', who: 'Mika · operational executive', at: '17:30–19:25',
+        i: 'Plan-level war-game findings', o: 'Every material finding dispositioned with reasons' },
+      { l: 'johanna', c: 6, k: 'h', t: 'Revise, revise, defer', who: 'Johanna · Accountable Executive', at: '17:31–18:49',
+        i: 'Strategic plan revisions', o: 'Each with reasons; the plan was redrafted', rule: 'Fixed during the run: a deferred gate now stays a task (D-40).' },
+      { l: 'antti', c: 6, k: 'r', t: 'Validation refused until graded', who: 'Antti · Strategic Planning Lead', at: '18:29',
+        i: 'PRD-0028 whose claim grading had failed', o: 'GRADE_FAILED: graded again, validated at 18:34', rule: 'Claims are graded before anyone may validate the revision.' },
+      { l: 'mika', c: 6, k: 'h', t: 'Revise, then escalate', who: 'Mika · operational executive', at: '19:16–19:26',
+        i: 'Operational plan', o: 'Escalated, then decided again', rule: 'Fixed during the run: a revise decision now sends back only the operational plan.' },
+      { l: 'teemu', c: 6, k: 'p', t: 'Validates the operational plan', who: 'Teemu · Operational Planning Lead', at: '19:22',
+        i: 'PRD-0035 on the exact strategic plan', o: 'VAL' },
+      { l: 'johanna', c: 6, k: 'd', t: 'Approves the strategic plan', who: 'Johanna · Accountable Executive', at: '19:26',
+        i: 'PRD-0028 r8', o: 'Approved with conditions: Sweden first, 20–30 % Nordic share, EBITDA at least 10 %' },
+      { l: 'mika', c: 6, k: 'd', t: 'Approves the operational plan', who: 'Mika · operational executive', at: '19:26',
+        i: 'PRD-0035 + its exact strategic parent', o: 'Approved with conditions A–E; ready for handover' },
+      { l: 'johanna', c: 7, k: 'p', t: 'Does not authorise go-live', who: 'Johanna · Accountable Executive', at: '19:58',
+        i: 'Both approved plans', o: 'Not yet: Ljudform agreement, Swedish key account manager, BVB listing and partners still open', rule: 'Approval never starts execution; go-live is a separate authorisation.' },
+      { l: 'ai', c: 7, k: 'r', t: 'Phases 5–6 cannot start', who: 'STRATMAP work list', at: '19:58',
+        i: 'PRD-0036–0046', o: 'No bound start condition in the canon yet (F-41); HORIZON stays dormant' },
+    ],
+  },
+}
+
+const $ = (id) => document.getElementById(id)
+const board = $('board'), scroller = $('scroller')
+const KIND = { p: '', ai: 'ai', d: 'decision', h: 'hold', r: 'refused' }
+const NS = 'http://www.w3.org/2000/svg'
+const el = (cls, html) => { const d = document.createElement('div'); d.className = cls; if (html) d.innerHTML = html; return d }
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+
+let R, EV, LANES, chips, colHeads, laneEls, tallyRows, maxCount, svg
+let cur = 0, timer = null, raf = null
+
+function build(key) {
+  R = ROUTES[key]; EV = R.ev; LANES = R.lanes
+  stop(); cancelAnimationFrame(raf); cur = 0
+  document.querySelectorAll('.route').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.route === key)))
+  $('eyebrow').textContent = R.eyebrow; $('h1').textContent = R.h1; $('lede').textContent = R.lede; $('foot').textContent = R.foot
+  $('facts').replaceChildren(...R.facts.map(([n, l]) => { const li = document.createElement('li'); li.innerHTML = l ? `<b>${n}</b> ${l}` : n; return li }))
+  $('scrub').max = EV.length - 1
+  board.replaceChildren(); board.classList.remove('playing')
+  board.style.gridTemplateColumns = `var(--lane-w) repeat(${R.cols.length}, minmax(var(--col-w), 1fr))`
+  board.style.minWidth = `calc(var(--lane-w) + ${R.cols.length} * var(--col-w))`
+  board.append(el('corner'))
+  colHeads = R.cols.map(([n, d]) => { const h = el('colhead', `<b>${n}</b><span>${d}</span>`); board.append(h); return h })
+  laneEls = {}; const cells = {}
+  LANES.forEach((ln, r) => {
+    const last = r === LANES.length - 1 ? ' row-last' : ''
+    const lane = el('lane' + (ln.ai ? ' ai' : '') + last, `<i class="dot"></i><b>${ln.name}</b><span>${ln.role}</span>`)
+    board.append(lane); laneEls[ln.id] = lane
+    R.cols.forEach((_, c) => { const cell = el('cell' + last); board.append(cell); cells[ln.id + c] = cell })
+  })
+  chips = EV.map((e, i) => [].concat(e.l).map((l) => {
+    const b = document.createElement('button')
+    b.type = 'button'; b.className = 'chip ' + KIND[e.k]
+    b.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')} · ${e.at.split(' ').pop()}</span>${e.t}`
+    b.addEventListener('click', () => manual(i))
+    cells[l + e.c].append(b); return b
+  }))
+  svg = document.createElementNS(NS, 'svg'); svg.setAttribute('class', 'links'); board.append(svg)
+  $('tally').replaceChildren()
+  tallyRows = LANES.map((ln) => {
+    const li = document.createElement('li'); li.className = ln.ai ? 'ai' : ''
+    li.innerHTML = `<span>${ln.name}</span><span class="bar"><i style="width:0"></i></span><span>0</span>`
+    $('tally').append(li); return li
+  })
+  maxCount = Math.max(...LANES.map((ln) => EV.filter((e) => [].concat(e.l).includes(ln.id)).length))
+  scroller.scrollLeft = 0
+  go(0)
+}
+
+function box(chip) {
+  const b = board.getBoundingClientRect(), r = chip.getBoundingClientRect()
+  return { l: r.left - b.left, r: r.right - b.left, y: r.top - b.top + r.height / 2, x: r.left - b.left + r.width / 2 }
+}
+// a handoff: a curve from the previous event to this one, drawn with a travelling dot
+function link(from, to, ai) {
+  svg.setAttribute('width', board.scrollWidth); svg.setAttribute('height', board.scrollHeight)
+  const a = box(from), z = box(to)
+  const fwd = z.x >= a.x, sx = fwd ? a.r : a.l, ex = fwd ? z.l : z.r
+  const same = Math.abs(a.x - z.x) < 4
+  const d = same
+    ? `M ${a.r} ${a.y} C ${a.r + 34} ${a.y}, ${z.r + 34} ${z.y}, ${z.r} ${z.y}`
+    : `M ${sx} ${a.y} C ${sx + (fwd ? 40 : -40)} ${a.y}, ${ex - (fwd ? 40 : -40)} ${z.y}, ${ex} ${z.y}`
+  const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); if (ai) p.setAttribute('class', 'ai'); svg.append(p)
+  if (reduce) return
+  const len = p.getTotalLength(); p.style.strokeDasharray = len; p.style.strokeDashoffset = len
+  const dot = document.createElementNS(NS, 'circle'); dot.setAttribute('r', 4.5); if (ai) dot.setAttribute('class', 'ai'); svg.append(dot)
+  const t0 = performance.now(), dur = 650
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3)
+    p.style.strokeDashoffset = len * (1 - e)
+    const pt = p.getPointAtLength(len * e); dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y)
+    if (k < 1) raf = requestAnimationFrame(step); else dot.remove()
+  }
+  raf = requestAnimationFrame(step)
+}
+
+function go(i) {
+  cur = Math.max(0, Math.min(EV.length - 1, i))
+  const e = EV[cur]
+  chips.forEach((cs, j) => cs.forEach((c) => { c.classList.toggle('active', j === cur); c.classList.toggle('done', j < cur) }))
+  colHeads.forEach((h, c) => h.classList.toggle('on', c === e.c))
+  Object.entries(laneEls).forEach(([id, l]) => l.classList.toggle('on', [].concat(e.l).includes(id)))
+  cancelAnimationFrame(raf); svg.replaceChildren()
+  if (cur > 0) chips[cur].forEach((c) => link(chips[cur - 1][0], c, e.k === 'ai'))
+  // keep the active event in view inside the board's own scroller
+  const c = chips[cur][0], sr = scroller.getBoundingClientRect(), cr = c.getBoundingClientRect()
+  if (cr.left < sr.left + 160 || cr.right > sr.right - 20)
+    scroller.scrollTo({ left: scroller.scrollLeft + cr.left - sr.left - 180, behavior: reduce ? 'auto' : 'smooth' })
+  $('nTitle').textContent = e.t
+  $('nWho').textContent = `${e.who} · ${e.at}`
+  $('nIn').textContent = e.i; $('nOut').textContent = e.o; $('nRule').textContent = e.rule || ''
+  $('count').textContent = `${cur + 1} / ${EV.length}`; $('scrub').value = cur
+  LANES.forEach((ln, r) => {
+    const n = EV.slice(0, cur + 1).filter((x) => [].concat(x.l).includes(ln.id)).length
+    tallyRows[r].querySelector('i').style.width = `${(n / maxCount) * 100}%`
+    tallyRows[r].lastElementChild.textContent = n
+  })
+}
+const pace = () => 2600 / Number($('speed').value)
+function tick() { if (cur >= EV.length - 1) { stop(); return } go(cur + 1); timer = setTimeout(tick, pace()) }
+function play() { if (cur >= EV.length - 1) go(0); board.classList.add('playing'); $('play').textContent = 'Pause'; timer = setTimeout(tick, pace() * 0.6) }
+function stop() { clearTimeout(timer); timer = null; $('play').textContent = 'Play' }
+function manual(i) { stop(); board.classList.add('playing'); go(i) }
+$('play').addEventListener('click', () => (timer ? stop() : play()))
+$('prev').addEventListener('click', () => manual(cur - 1))
+$('next').addEventListener('click', () => manual(cur + 1))
+$('scrub').addEventListener('input', (ev) => manual(Number(ev.target.value)))
+document.addEventListener('keydown', (ev) => {
+  if (ev.target.closest('input, select')) return
+  if (ev.key === 'ArrowRight') manual(cur + 1)
+  if (ev.key === 'ArrowLeft') manual(cur - 1)
+})
+addEventListener('resize', () => go(cur))
+// each case has its own link: #lite or #full
+const routeOf = () => (location.hash === '#full' ? 'full' : 'lite')
+document.querySelectorAll('.route').forEach((b) => b.addEventListener('click', () => {
+  if (location.hash !== '#' + b.dataset.route) location.hash = b.dataset.route
+  else build(b.dataset.route)
+}))
+addEventListener('hashchange', () => build(routeOf()))
+build(routeOf())
+// the board is fully readable at rest; playback starts by itself unless the viewer asked for less motion
+if (!reduce) setTimeout(() => { if (!timer) play() }, 1400)
+</script>
+
+</body></html>
