@@ -1,0 +1,396 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>STRATMAP Three-Seat Simulation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one running order, a sticky "who is up" legend, each step = actor chip + action + "look at". */
+:root {
+  --bg: #f7f7f4;
+  --surface: #ffffff;
+  --ink: #1d1f1b;
+  --ink-2: #4e534b;
+  --line: #d9dbd3;
+  --accent: #245b6b;
+  --accent-ink: #ffffff;
+  --tommy: #9a4d00;  --tommy-bg: #fff1e2;
+  --nasir: #1b4f9c;  --nasir-bg: #e7eefb;
+  --kimmo: #4f1f7a;  --kimmo-bg: #f0e8fa;
+  --all: #2f5a2a;    --all-bg: #e6f2e4;
+  --look-bg: #eef3f4;
+  --wait-bg: #fbf5e6; --wait-ink: #6b5200;
+  --kbd-bg: #ffffff; --kbd-line: #b9bdb3;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-ui: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #15171a; --surface: #1e2125; --ink: #ecede8; --ink-2: #aab0a7; --line: #353a3f;
+    --accent: #7fc1d2; --accent-ink: #0f2228;
+    --tommy: #ffb570; --tommy-bg: #3a2410;
+    --nasir: #8fb4ee; --nasir-bg: #16273f;
+    --kimmo: #c9a3f0; --kimmo-bg: #2c1b41;
+    --all: #9fd49a;   --all-bg: #1b2e19;
+    --look-bg: #232b2e; --wait-bg: #2e2812; --wait-ink: #f0d27a;
+    --kbd-bg: #272b30; --kbd-line: #4a5058;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #15171a; --surface: #1e2125; --ink: #ecede8; --ink-2: #aab0a7; --line: #353a3f;
+  --accent: #7fc1d2; --accent-ink: #0f2228;
+  --tommy: #ffb570; --tommy-bg: #3a2410;
+  --nasir: #8fb4ee; --nasir-bg: #16273f;
+  --kimmo: #c9a3f0; --kimmo-bg: #2c1b41;
+  --all: #9fd49a;   --all-bg: #1b2e19;
+  --look-bg: #232b2e; --wait-bg: #2e2812; --wait-ink: #f0d27a;
+  --kbd-bg: #272b30; --kbd-line: #4a5058;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 17px; line-height: 1.5;
+  padding-block: 0 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+h2 { font-size: 1.35rem; font-weight: 600; }
+h3 { font-size: 1rem; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--accent); }
+
+header.top { padding-block: 40px 20px; display: grid; gap: 14px; }
+.eyebrow { font-family: var(--font-ui); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.lede { color: var(--ink-2); max-width: 62ch; }
+
+.cast { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 8px; }
+.seat { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; }
+.seat .who { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; }
+.seat .role { color: var(--ink-2); font-size: 0.95rem; }
+.seat[data-a="tommy"] { border-top: 4px solid var(--tommy); }
+.seat[data-a="nasir"] { border-top: 4px solid var(--nasir); }
+.seat[data-a="kimmo"] { border-top: 4px solid var(--kimmo); }
+
+.sticky {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  padding-block: 10px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 0.92rem;
+}
+.sticky .prog { font-family: var(--font-ui); font-size: 0.8rem; color: var(--ink-2); margin-left: auto; font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-display); font-weight: 600; font-size: 0.8rem; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.chip.tommy { color: var(--tommy); background: var(--tommy-bg); }
+.chip.nasir { color: var(--nasir); background: var(--nasir-bg); }
+.chip.kimmo { color: var(--kimmo); background: var(--kimmo-bg); }
+.chip.all   { color: var(--all);   background: var(--all-bg); }
+.chip.wait  { color: var(--wait-ink); background: var(--wait-bg); }
+.chip.wait::before { display: none; }
+
+section.part { padding-block: 34px 10px; border-top: 1px solid var(--line); }
+section.part:first-of-type { border-top: 0; }
+.part-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; margin-bottom: 6px; }
+.part-head .num { font-family: var(--font-ui); font-size: 0.8rem; color: var(--ink-2); letter-spacing: 0.08em; }
+.part-head .time { margin-left: auto; font-family: var(--font-ui); font-size: 0.78rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.part-goal { color: var(--ink-2); margin-bottom: 18px; max-width: 66ch; }
+
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.step {
+  display: grid; grid-template-columns: 28px 1fr; gap: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
+}
+.step.done { opacity: 0.55; }
+.step input[type="checkbox"] { width: 20px; height: 20px; margin: 3px 0 0; accent-color: var(--accent); cursor: pointer; }
+.step .body { display: grid; gap: 8px; min-width: 0; }
+.step .line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.step .n { font-family: var(--font-ui); font-size: 0.75rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.step .act { flex: 1 1 100%; }
+.look { background: var(--look-bg); border-radius: 6px; padding: 8px 12px; font-size: 0.95rem; display: grid; grid-template-columns: auto 1fr; gap: 10px; }
+.look .lbl { font-family: var(--font-ui); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); padding-top: 4px; white-space: nowrap; }
+.look.bad .lbl { color: var(--tommy); }
+.look.say .lbl { color: var(--all); }
+kbd {
+  font-family: var(--font-ui); font-size: 0.82em; font-weight: 500; padding: 1px 7px 2px;
+  border: 1px solid var(--kbd-line); border-bottom-width: 2px; border-radius: 5px; background: var(--kbd-bg); white-space: nowrap;
+}
+.step em.ex { font-style: italic; color: var(--ink-2); }
+.wait-box { background: var(--wait-bg); color: var(--wait-ink); border-radius: 8px; padding: 12px 14px; font-size: 0.95rem; }
+.wait-box strong { color: inherit; }
+
+.prep { display: grid; gap: 10px; margin-top: 16px; }
+.prep .row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: start; font-size: 0.98rem; }
+.prep .row .k { font-family: var(--font-display); font-weight: 600; font-size: 0.9rem; padding-top: 2px; }
+.prep .row .v { color: var(--ink); }
+
+.notes { margin-top: 22px; display: grid; gap: 6px; }
+.notes label { font-family: var(--font-ui); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.notes textarea {
+  width: 100%; min-height: 64px; resize: vertical; font: inherit; font-size: 0.95rem; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
+}
+.notes textarea:focus, .step input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+footer.end { padding-block: 30px; color: var(--ink-2); font-size: 0.92rem; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+footer button { font: inherit; font-size: 0.85rem; color: var(--ink-2); background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+footer button:hover { color: var(--ink); border-color: var(--ink-2); }
+
+table.ref { border-collapse: collapse; width: 100%; font-size: 0.93rem; margin-top: 10px; }
+.ref th, .ref td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ref th { font-family: var(--font-ui); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); font-weight: 500; }
+.tablewrap { overflow-x: auto; }
+
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  h1 { font-size: 1.6rem; }
+  .look { grid-template-columns: 1fr; gap: 4px; }
+  .prep .row { grid-template-columns: 1fr; gap: 2px; }
+  .sticky .prog { margin-left: 0; flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: no-preference) { .step { transition: opacity 160ms ease; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <p class="eyebrow">stratmap.sfai.fi · live simulation · Monday 9 Nov 2026</p>
+  <h1>Three people, one operation, start to finish</h1>
+  <p class="lede">Nothing is prepared in advance. You sit down, open the system cold and run one STRATMAP LITE operation through all four phases, the board package and the monthly HORIZON cycle. Each step names who acts, what to click, and what everyone should see. Tick steps as you go; ticks and notes stay in this browser.</p>
+  <div class="cast">
+    <div class="seat" data-a="tommy"><span class="who">Tommy</span><span class="role">Admin. Creates the operation, invites people, starts the process, keeps it moving.</span></div>
+    <div class="seat" data-a="nasir"><span class="who">Nasir</span><span class="role">Member of the company: CEO (Accountable Executive). Answers the questions, uploads a document, corrects the plan, reports the month.</span></div>
+    <div class="seat" data-a="kimmo"><span class="who">Kimmo</span><span class="role">Member of the company: Board. The final decision maker. Decides every phase, reads the board package, approves the plan.</span></div>
+  </div>
+</header>
+
+<div class="sticky">
+  <span class="chip tommy">Tommy</span><span class="chip nasir">Nasir</span><span class="chip kimmo">Kimmo</span><span class="chip all">Everyone</span><span class="chip wait">Wait</span>
+  <span class="prog" id="prog">0 / 0 steps</span>
+</div>
+
+<section class="part" id="p0">
+  <div class="part-head"><span class="num">BEFORE YOU START</span><h2>Five minutes in the room</h2><span class="time">5 min</span></div>
+  <p class="part-goal">Do this together at the table. Nothing here needs the evening before.</p>
+  <div class="prep">
+    <div class="row"><span class="k">Laptops</span><span class="v">Three laptops, one per person, each in its own browser, nobody logged in. Everyone opens <a href="https://stratmap.sfai.fi">https://stratmap.sfai.fi</a>.</span></div>
+    <div class="row"><span class="k">E-mail</span><span class="v">Invitations arrive by e-mail. Nasir and Kimmo each need an address they can read right now <strong>that has no STRATMAP account yet</strong>. Nasir's nasir@sfai.fi and Kimmo's admin login already have accounts, so use another address (a personal one is fine). Tommy also needs a readable address.</span></div>
+    <div class="row"><span class="k">Phone</span><span class="v">Tommy needs an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password). Admin logins ask for a one-time code. Nasir and Kimmo will be asked for one too, but only when they log in a second time.</span></div>
+    <div class="row"><span class="k">Nasir</span><span class="v">Your own admin password and authenticator for nasir@sfai.fi. You use it twice: to create Tommy's account (Part 1) and for the support test (Part 9). Do that in a <strong>private window</strong> so it does not mix with your member login.</span></div>
+    <div class="row"><span class="k">One file</span><span class="v">Any PDF or CSV on Nasir's laptop that looks like a budget or company document. One page is enough. The system scans it for malware before it is stored.</span></div>
+    <div class="row"><span class="k">Optional</span><span class="v">A fourth e-mail address (any of you with a second address) for the "outside reader" test in Part 9.</span></div>
+  </div>
+  <div class="notes"><label for="n0">Notes for this part</label><textarea id="n0" data-notes="p0" placeholder="Anything odd, slow, unclear…"></textarea></div>
+</section>
+
+<section class="part" id="p1">
+  <div class="part-head"><span class="num">PART 1</span><h2>Tommy gets an admin account</h2><span class="time">5 min</span></div>
+  <p class="part-goal">Nasir, as system owner, creates the admin. Tommy logs in for the first time and sets up his one-time code.</p>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s1"><div class="body"><div class="line"><span class="n">1</span><span class="chip nasir">Nasir</span><span class="act">Open a <strong>private window</strong>, go to https://stratmap.sfai.fi, log in as nasir@sfai.fi with your password and authenticator code.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s2"><div class="body"><div class="line"><span class="n">2</span><span class="chip nasir">Nasir</span><span class="act">Go to <strong>https://stratmap.sfai.fi/admin/users</strong> and click <kbd>Add user</kbd>. Name <em class="ex">Tommy</em>, Tommy's e-mail, role <kbd>Admin</kbd>, status <kbd>Approved</kbd>, and a password of at least 12 characters. Save. Tell Tommy the password.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>Tommy's row appears in the user list with role Admin.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s3"><div class="body"><div class="line"><span class="n">3</span><span class="chip tommy">Tommy</span><span class="act">On your own laptop, go to https://stratmap.sfai.fi and log in with that e-mail and password. The system asks you to set up a one-time code: scan the QR code with your authenticator app and type the 6-digit code.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>You land on <strong>Operations</strong>. Top right shows your name. A card <strong>New operation</strong> is on the right. If the screen is in Finnish, switch the top-bar language to English.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s4"><div class="body"><div class="line"><span class="n">4</span><span class="chip nasir">Nasir</span><span class="act">Close the private window. You are a company member from now on, not an admin, until Part 9.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n1">Notes for this part</label><textarea id="n1" data-notes="p1"></textarea></div>
+</section>
+
+<section class="part" id="p2">
+  <div class="part-head"><span class="num">PART 2</span><h2>Tommy creates the operation</h2><span class="time">3 min</span></div>
+  <p class="part-goal">A fresh LITE operation. The first thing to notice: the process refuses to start until someone is named as the final decision maker.</p>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s5"><div class="body"><div class="line"><span class="n">5</span><span class="chip tommy">Tommy</span><span class="act">On <strong>Operations</strong>, in the <kbd>New operation</kbd> card: name <em class="ex">Demo Oy growth plan 2027-2029</em>, <kbd>Delivery profile</kbd> = <strong>STRATMAP LITE</strong>, <kbd>Content language</kbd> = <strong>English</strong>. Click <kbd>Create</kbd>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>You land on <strong>Organisation</strong>. Four phase boxes: <strong>0 Set-up and decision rights</strong> in progress, 1 Starting point, 2 Plan, 3 Living plan not started. A warning reads "Name the final decision maker (for example the board) before the process can continue."</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s6"><div class="body"><div class="line"><span class="n">6</span><span class="chip tommy">Tommy</span><span class="act">Try to click <kbd>Start the starting-point questionnaire</kbd> now, before anyone is invited.</span></div>
+      <div class="look bad"><span class="lbl">Expected refusal</span><span>"Name the final decision maker first (for example the board). The process cannot continue without one." This is on purpose: phase 0 cannot end unless it is clear who decides.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n2">Notes for this part</label><textarea id="n2" data-notes="p2"></textarea></div>
+</section>
+
+<section class="part" id="p3">
+  <div class="part-head"><span class="num">PART 3</span><h2>Nasir and Kimmo join the company</h2><span class="time">8 min</span></div>
+  <p class="part-goal">Tommy invites both. Each accepts the e-mail, sets a password, signs the NDA and confirms their role.</p>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s7"><div class="body"><div class="line"><span class="n">7</span><span class="chip tommy">Tommy</span><span class="act">On <strong>Organisation</strong>, <kbd>Add participant</kbd>: Nasir's fresh e-mail, name <em class="ex">Nasir</em>, role <strong>Accountable Executive / planning sponsor</strong> (the dropdown's default). Add.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>A green note: "Invitation e-mailed to …". If instead an orange note shows an <strong>invitation link</strong>, e-mail is off: copy the link and send it to Nasir by chat.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s8"><div class="body"><div class="line"><span class="n">8</span><span class="chip tommy">Tommy</span><span class="act"><kbd>Add participant</kbd> again: Kimmo's fresh e-mail, name <em class="ex">Kimmo</em>, change the role to <strong>Board</strong>. Add.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s9"><div class="body"><div class="line"><span class="n">9</span><span class="chip tommy">Tommy</span><span class="act">Click <kbd>Save planning organisation</kbd>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>The "Name the final decision maker" warning is gone. Both people are listed, roles not yet confirmed.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s10"><div class="body"><div class="line"><span class="n">10</span><span class="chip nasir">Nasir</span><span class="act">Open the invitation e-mail, click the link. Type a password twice (12+ characters), tick the <strong>NDA and terms</strong> box, activate.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>"Welcome! Your account is now active." You are logged in and see <strong>Operations</strong> with <em>Demo Oy growth plan 2027-2029</em> listed. The link works once only.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s11"><div class="body"><div class="line"><span class="n">11</span><span class="chip kimmo">Kimmo</span><span class="act">Same: open your invitation e-mail, set a password, tick the NDA box, activate.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s12"><div class="body"><div class="line"><span class="n">12</span><span class="chip nasir">Nasir</span><span class="act">Open the operation. On <strong>Organisation</strong>, click <kbd>Confirm my role</kbd>.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s13"><div class="body"><div class="line"><span class="n">13</span><span class="chip kimmo">Kimmo</span><span class="act">Open the operation. On <strong>Organisation</strong>, click <kbd>Confirm my role</kbd>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>In Tommy's window (it refreshes itself) both roles now show as confirmed. Tommy, Nasir and Kimmo all see the same four phases. Nobody sees an "Add participant" box except Tommy.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n3">Notes for this part</label><textarea id="n3" data-notes="p3"></textarea></div>
+</section>
+
+<section class="part" id="p4">
+  <div class="part-head"><span class="num">PART 4</span><h2>Phase 1: the starting point</h2><span class="time">12 min</span></div>
+  <p class="part-goal">Tommy opens the questionnaire. Nasir, as CEO, tells the company's story and uploads one document.</p>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s14"><div class="body"><div class="line"><span class="n">14</span><span class="chip tommy">Tommy</span><span class="act">On <strong>Organisation</strong>, click <kbd>Start the starting-point questionnaire</kbd>. Leave "Business ID (optional)" empty.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>Phase 0 done, <strong>Phase 1 Starting point</strong> in progress. A link <kbd>Answer the questions</kbd> appears.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s15"><div class="body"><div class="line"><span class="n">15</span><span class="chip nasir">Nasir</span><span class="act">Open <strong>Workshops</strong> (or click <kbd>Answer the questions</kbd>). Answer at least the mandatory questions <strong>1, 2, 3, 4 and 9</strong> with one made-up small-company story. Example: <em class="ex">14 staff, revenue 2.1 M€, cash 180 k€, growth goal: double revenue by 2029, one investment decision: a new production line for 400 k€.</em> Part B is the 12-month cash forecast; fill it if quick, or leave it empty on purpose. Click <kbd>Save answers</kbd>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>Saved without error. Empty Part B answers will later show up in the board package as <strong>decision risks</strong>. That is a test, not a bug.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s16"><div class="body"><div class="line"><span class="n">16</span><span class="chip nasir">Nasir</span><span class="act">Open <strong>Documents</strong>, upload your PDF or CSV, visibility <strong>All participants</strong>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>The file appears in the list after the malware scan. Kimmo refreshes his Documents page and sees the same file. If you see "The malware scanner is not available", note it and continue without the file.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s17"><div class="body"><div class="line"><span class="n">17</span><span class="chip all">Everyone</span><span class="act">Go back to <strong>Organisation</strong>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>Phase 1 now says <strong>waiting for a decision</strong>. Kimmo's window shows decision buttons. Nasir's and Tommy's windows show "The phase is waiting for the final decision maker." and no buttons.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n4">Notes for this part</label><textarea id="n4" data-notes="p4"></textarea></div>
+</section>
+
+<section class="part" id="p5">
+  <div class="part-head"><span class="num">PART 5</span><h2>Kimmo decides phase 1</h2><span class="time">5 min</span></div>
+  <p class="part-goal">The board reads the starting-point package and lets the next phase start. Only the board can.</p>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s18"><div class="body"><div class="line"><span class="n">18</span><span class="chip kimmo">Kimmo</span><span class="act">At phase 1, open <kbd>Board one-pager</kbd> and <kbd>Decision paper</kbd>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>The confidence badge shows <strong>B</strong> (the company's own answers). The decision paper lists Nasir's answers and the open items. Everything is in English because the operation's content language is English.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s19"><div class="body"><div class="line"><span class="n">19</span><span class="chip nasir">Nasir</span><span class="act">Try to find a way to accept phase 1 in your own window.</span></div>
+      <div class="look bad"><span class="lbl">Expected refusal</span><span>There is no button for you. The server refuses too: a CEO cannot take the board's decision.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s20"><div class="body"><div class="line"><span class="n">20</span><span class="chip kimmo">Kimmo</span><span class="act">Choose <kbd>Accept – the next phase starts</kbd>, reason <em class="ex">The starting point is right</em>, click <kbd>Record the decision</kbd>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>Phase 1 done, <strong>Phase 2 Plan</strong> in progress. Under the phases a note says <strong>"The system is drafting the plan."</strong> No one pressed any further button.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n5">Notes for this part</label><textarea id="n5" data-notes="p5"></textarea></div>
+</section>
+
+<section class="part" id="p6">
+  <div class="part-head"><span class="num">PART 6</span><h2>The automatic run and the correction round</h2><span class="time">15 min, mostly waiting</span></div>
+  <p class="part-goal">The system drafts, checks, red-teams and revises the plan on its own. Then it hands the plan to the CEO for corrections, and after that to the board.</p>
+  <div class="wait-box" style="margin-bottom:10px"><strong>Wait 5 to 10 minutes.</strong> All three pages refresh themselves every 10 seconds. The note under the phases changes in this order: 1. The system is drafting the plan. 2. The system is checking the sources. 3. The red team is reading the plan. 4. The system is revising the plan. 5. Your turn: read the plan and record corrections.</div>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s21"><div class="body"><div class="line"><span class="n">21</span><span class="chip all">Everyone</span><span class="act">While waiting, look around. Kimmo: open <strong>Documents</strong> and confirm you see Nasir's file. Tommy: scroll to the section <strong>Readers outside the planning group</strong> and read what it offers. Nasir: open <strong>Workshops</strong> again and check your answers are still there.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s22"><div class="body"><div class="line"><span class="n">22</span><span class="chip tommy">Tommy</span><span class="act">Only if the note says <strong>"The automatic run stopped at …"</strong> with a reason: click <kbd>Resume automatically</kbd>. The step is retried once and the run continues. Note the reason in the box below.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s23"><div class="body"><div class="line"><span class="n">23</span><span class="chip nasir">Nasir</span><span class="act">When the note says <strong>"Your turn"</strong>, the section <strong>Correction round</strong> appears in your window. Write one factual correction, for example <em class="ex">We have 14 staff, not 12</em>, and click <kbd>Send feedback</kbd>. (The other choice is <kbd>Nothing to correct – continue</kbd>.)</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>The note changes to "The system is revising the plan" and the checks run again. Kimmo and Tommy have no correction box: this round belongs to the company's executive.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s24"><div class="body"><div class="line"><span class="n">24</span><span class="chip wait">Wait</span><span class="act">3 to 5 minutes more.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>Phase 2 says <strong>"The plan is ready for the board to decide."</strong> Kimmo's window shows the section <strong>The board's decision · version 1</strong>.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n6">Notes for this part</label><textarea id="n6" data-notes="p6"></textarea></div>
+</section>
+
+<section class="part" id="p7">
+  <div class="part-head"><span class="num">PART 7</span><h2>The board package and the approval</h2><span class="time">12 min</span></div>
+  <p class="part-goal">Kimmo reads what a board actually gets: a one-pager, a decision paper with sources and confidence, and the full package. Then he approves.</p>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s25"><div class="body"><div class="line"><span class="n">25</span><span class="chip kimmo">Kimmo</span><span class="act">In <strong>The board's decision · version 1</strong>, look next to the buttons.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>A confidence badge with a letter, for example "◕ B · Good: probable (60–85 %)", a line "Decision risk: …" and counts per class A/B/C/D. Expect B, C or D. The rule beside it: the decision's confidence is the weakest class among the claims it relies on. If you left Part B empty, the missing cash forecast is one of the decision risks.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s26"><div class="body"><div class="line"><span class="n">26</span><span class="chip kimmo">Kimmo</span><span class="act">Open <kbd>Board one-pager</kbd>. Press Cmd+P or Ctrl+P to see the print preview, then cancel.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>One page: the question, the proposal, the confidence, cash low points and the cash floor, top risks, what happens next. It fits one printed page.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s27"><div class="body"><div class="line"><span class="n">27</span><span class="chip kimmo">Kimmo</span><span class="act">Open <kbd>Decision paper</kbd> and read down to <strong>Full analysis</strong>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>"What STRATMAP did" step by step, the options, red team objections <strong>with answers</strong>, the corrections (Nasir's "14 staff" is here), open items, and <strong>Claims and sources</strong>: every claim with its A–D chip, its sources and their quality.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s28"><div class="body"><div class="line"><span class="n">28</span><span class="chip tommy">Tommy</span><span class="act">Open <kbd>Board package</kbd> and <kbd>Monitoring annex</kbd>. In the annex, find the plan's <strong>cash trigger</strong> (something like "Cash &lt; 170") and write it in the notes box below. You need it in Part 8. Also check which monthly offers go to the CEO and which to the board.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>At the end, "Identifiers in this document" names every trigger, decision point and measure in words. No codes like DR-2 anywhere in the text.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s29"><div class="body"><div class="line"><span class="n">29</span><span class="chip nasir">Nasir</span><span class="act">Try to approve the plan in your own window.</span></div>
+      <div class="look bad"><span class="lbl">Expected refusal</span><span>No approve button. "The phase is waiting for the final decision maker."</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s30"><div class="body"><div class="line"><span class="n">30</span><span class="chip kimmo">Kimmo</span><span class="act"><strong>Optional, costs 5 minutes of waiting:</strong> choose <kbd>Return for revision</kbd>, reason <em class="ex">Calculate cash without the subsidy</em>, <kbd>Record the decision</kbd>. The revision and the checks run by themselves and the board gets version 2. Skip if time is short.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s31"><div class="body"><div class="line"><span class="n">31</span><span class="chip kimmo">Kimmo</span><span class="act">Choose <kbd>Approve the plan</kbd>, reason <em class="ex">Board 9 Nov 2026</em>, click <kbd>Record the decision</kbd>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>Phase 2 done, <strong>Phase 3 Living plan</strong> in progress. The daily web check is switched on automatically. The section <strong>HORIZON-LITE – monthly monitoring</strong> appears in everyone's window.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n7">Notes for this part (write the cash trigger here)</label><textarea id="n7" data-notes="p7" placeholder="Cash trigger from the Monitoring annex: …"></textarea></div>
+</section>
+
+<section class="part" id="p8">
+  <div class="part-head"><span class="num">PART 8</span><h2>HORIZON: the first month</h2><span class="time">10 min</span></div>
+  <p class="part-goal">The company reports a month where cash is below the plan's trigger. The system reacts, offers decisions to the right person, and records what they decide.</p>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s32"><div class="body"><div class="line"><span class="n">32</span><span class="chip nasir">Nasir</span><span class="act">In <strong>HORIZON-LITE – monthly monitoring</strong>, open <kbd>The month's report (the company's own standard report)</kbd>. Report date <em class="ex">2027-01-31</em>. In Measures, enter a <strong>cash value below the trigger</strong> Tommy wrote down in step 28. Click <kbd>Record the report</kbd>.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s33"><div class="body"><div class="line"><span class="n">33</span><span class="chip wait">Wait</span><span class="act">About 1 minute. No button to press.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>The month gets a review, "What you decide this month…", and one or more <strong>decision offers</strong>. Each offer says who may decide it: the CEO or the board. HORIZON runs when something changes, not on a timer.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s34"><div class="body"><div class="line"><span class="n">34</span><span class="chip nasir">Nasir</span><span class="act">On the cash offer, click <kbd>Do not act on this now</kbd>, reason <em class="ex">Salaries were deliberately paid early</em>, click <kbd>Record: not acting now</kbd>. If the offer is routed to the board, Kimmo does this step instead.</span></div>
+      <div class="look say"><span class="lbl">Point</span><span>This is a recorded decision with a reason and a version, not a dismissed alert.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s35"><div class="body"><div class="line"><span class="n">35</span><span class="chip kimmo">Kimmo</span><span class="act">Decide the remaining offers that are marked for the board. Nasir decides any that are marked for the CEO.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>When every offer is decided, the month shows <strong>"Recorded in the plan"</strong> on its own.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s36"><div class="body"><div class="line"><span class="n">36</span><span class="chip nasir">Nasir</span><span class="act"><strong>Optional:</strong> record a second month (2027-02-28) with the <strong>same</strong> cash value, then a third with a <strong>lower</strong> one.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>Same value: the trigger shows "Deliberately not acted on" and stays quiet. Lower value: "alerts again: the situation got worse" and a new offer appears.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n8">Notes for this part</label><textarea id="n8" data-notes="p8"></textarea></div>
+</section>
+
+<section class="part" id="p9">
+  <div class="part-head"><span class="num">PART 9</span><h2>Outside reader and SFAi support</h2><span class="time">8 min</span></div>
+  <p class="part-goal">Who else can see the plan, and how every view is logged. The board grants access; an admin must give a reason to open a customer's operation.</p>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s37"><div class="body"><div class="line"><span class="n">37</span><span class="chip kimmo">Kimmo</span><span class="act">In <strong>Readers outside the planning group</strong>, click <kbd>Let an outside party read</kbd>. E-mail: the fourth address. What they may read: <strong>phase packages and the living plan</strong>. Days: <em class="ex">90</em>. Reason: <em class="ex">Funding application, bank X</em>. Click <kbd>Allow reading</kbd>.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s38"><div class="body"><div class="line"><span class="n">38</span><span class="chip all">Everyone</span><span class="act">Whoever owns that address: open the e-mail link in a <strong>private window</strong>, tick the NDA box, set a password. Then go to <strong>https://stratmap.sfai.fi/app/ops</strong>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>A section <strong>Shared with you</strong>. The funder sees a read-only page with the packages and the latest months. Nothing else opens: no Organisation, no Documents, no decisions.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s39"><div class="body"><div class="line"><span class="n">39</span><span class="chip kimmo">Kimmo</span><span class="act">Open <kbd>View and access log</kbd>. Then click <kbd>End access</kbd>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>The funder's views are listed with time. After "End access", the funder's private window loses the operation on refresh.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s40"><div class="body"><div class="line"><span class="n">40</span><span class="chip nasir">Nasir</span><span class="act">Open a <strong>private window</strong> again and log in as nasir@sfai.fi (an admin who did not create this operation). Open <em>Demo Oy growth plan 2027-2029</em>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>You are stopped by <strong>"Open the operation for support"</strong>. Write the reason <em class="ex">Support ticket #1: demo</em> (at least 10 characters) and click <kbd>Open for support</kbd>. Only then does the operation open.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s41"><div class="body"><div class="line"><span class="n">41</span><span class="chip kimmo">Kimmo</span><span class="act">Refresh <kbd>View and access log</kbd>.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>The support access is in the same log, with Nasir's reason and a limit of at most 8 hours. The customer always sees when SFAi looked in and why.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n9">Notes for this part</label><textarea id="n9" data-notes="p9"></textarea></div>
+</section>
+
+<section class="part" id="p10">
+  <div class="part-head"><span class="num">PART 10</span><h2>Wrap up</h2><span class="time">5 min</span></div>
+  <p class="part-goal">Two last checks, then decide whether to keep the operation.</p>
+  <ol class="steps">
+    <li class="step"><input type="checkbox" id="s42"><div class="body"><div class="line"><span class="n">42</span><span class="chip kimmo">Kimmo</span><span class="act">Log out and log in again with your member account.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>You are asked to set up a one-time code with your authenticator app. People who hold a deciding role must use one from their second login on. Nasir gets the same when he logs in again.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s43"><div class="body"><div class="line"><span class="n">43</span><span class="chip all">Everyone</span><span class="act">Switch the top-bar language to Finnish in one window and back.</span></div>
+      <div class="look"><span class="lbl">Look at</span><span>Screens follow each person's own choice. The AI-written plan stays in English, the operation's content language.</span></div></div></li>
+    <li class="step"><input type="checkbox" id="s44"><div class="body"><div class="line"><span class="n">44</span><span class="chip tommy">Tommy</span><span class="act"><strong>Only if you want to remove the test data:</strong> on <strong>Organisation</strong>, open the collapsed panel <strong>Closing the operation and data retention</strong>, click <kbd>Erase the operation now (demo or finished)</kbd>, paste the exact name <em class="ex">Demo Oy growth plan 2027-2029</em>, click <kbd>Erase permanently</kbd>. Otherwise keep it: it is a complete worked case.</span></div></div></li>
+  </ol>
+  <div class="notes"><label for="n10">What we found (bugs, confusing moments, ideas)</label><textarea id="n10" data-notes="p10" style="min-height:120px"></textarea></div>
+</section>
+
+<section class="part" id="pref">
+  <div class="part-head"><span class="num">IF SOMETHING GOES WRONG</span><h2>Quick answers</h2></div>
+  <div class="tablewrap"><table class="ref">
+    <tr><th>You see</th><th>What it means</th><th>Do</th></tr>
+    <tr><td>A button is missing or an action is refused</td><td>You are the wrong person for it. Check the name at the top right.</td><td>Switch to the window of the person whose step it is.</td></tr>
+    <tr><td>No invitation e-mail</td><td>Mail is slow or off.</td><td>Check spam. Tommy's screen shows an invitation link if mail is off; send it by chat. An address that already has an account gets no e-mail at all.</td></tr>
+    <tr><td>"The automatic run stopped at …"</td><td>One AI step failed once.</td><td>Tommy clicks <kbd>Resume automatically</kbd>. Write down the reason.</td></tr>
+    <tr><td>A phase seems stuck with no message</td><td>AI steps take up to a minute each.</td><td>Wait two minutes. The page refreshes itself; do not reload in a loop.</td></tr>
+    <tr><td>"The malware scanner is not available"</td><td>The upload scanner is down.</td><td>Skip the document. Note it as a finding.</td></tr>
+    <tr><td>A page is in Finnish</td><td>Language is per person.</td><td>Set the top bar to English in that window. Login and password pages are English only.</td></tr>
+    <tr><td>Admin sees "Open the operation for support"</td><td>Expected: admins need a reason to enter a customer's operation.</td><td>Give a reason, or use the member account.</td></tr>
+  </table></div>
+</section>
+
+<footer class="end">
+  <span>Ticks and notes are saved in this browser only.</span>
+  <button type="button" id="reset">Clear ticks and notes</button>
+</footer>
+</div>
+
+<script>
+(function () {
+  var KEY = 'stratmap-sim-2026-11-09';
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.step input[type="checkbox"]'));
+  var prog = document.getElementById('prog');
+  function paint() {
+    var done = 0;
+    boxes.forEach(function (b) {
+      b.checked = !!state[b.id];
+      b.closest('.step').classList.toggle('done', b.checked);
+      if (b.checked) done++;
+    });
+    prog.textContent = done + ' / ' + boxes.length + ' steps';
+  }
+  boxes.forEach(function (b) {
+    b.addEventListener('change', function () { state[b.id] = b.checked; save(); paint(); });
+  });
+  var notes = Array.prototype.slice.call(document.querySelectorAll('textarea[data-notes]'));
+  notes.forEach(function (t) {
+    t.value = state['note:' + t.dataset.notes] || '';
+    t.addEventListener('input', function () { state['note:' + t.dataset.notes] = t.value; save(); });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    state = {}; save(); paint(); notes.forEach(function (t) { t.value = ''; });
+  });
+  paint();
+})();
+</script>
+
+</body></html>
